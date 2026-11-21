@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>발품투어 매물장 — 계정</title>
+<script src="config.js"></script>
+<style>
+  body{margin:0;font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:#F3F5FA;color:#1A1F36;word-break:keep-all}
+  .hd{background:#1E2A78;color:#fff;padding:22px 18px}.hd b{font-size:22px}
+  .bd{max-width:520px;margin:0 auto;padding:16px}
+  .cd{background:#fff;border-radius:16px;padding:18px;border:1px solid #E2E8F0}
+  label{display:block;font-size:14px;font-weight:700;margin:12px 0 4px}
+  input{width:100%;box-sizing:border-box;font-size:17px;padding:12px;border:1px solid #CBD5E1;border-radius:12px}
+  button{width:100%;margin-top:16px;background:#1E2A78;color:#fff;border:0;border-radius:999px;font-size:17px;font-weight:800;padding:14px}
+  .ok{color:#1F7A4D;font-weight:700}.err{color:#B91C1C;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="hd"><b>발품투어 매물장</b></div>
+<div class="bd"><div class="cd" id="box">확인 중…</div></div>
+<script>
+(function(){
+  var C = window.BALPUM_CONFIG || {};
+  var p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  var box = document.getElementById("box");
+  if (p.get("error_description")) { box.innerHTML = '<div class="err">' + p.get("error_description").replace(/</g, "&lt;") + '</div><p>링크가 오래됐을 수 있어요. 앱에서 다시 요청해 주세요.</p>'; return; }
+  var tok = p.get("access_token"), type = p.get("type");
+  if (!tok) { box.innerHTML = '이 페이지는 메일의 링크로 열려요.'; return; }
+  if (type !== "recovery") { box.innerHTML = '<p class="ok">가입 확인이 끝났어요!</p><p>발품투어 매물장 앱으로 돌아가 이메일과 비밀번호로 로그인하세요.</p>'; return; }
+  box.innerHTML = '<div><b>새 비밀번호 만들기</b></div><label>새 비밀번호 (6자리 이상)</label><input id="p1" type="password"><label>한 번 더</label><input id="p2" type="password"><div id="e" class="err"></div><button id="go">바꾸기</button>';
+  document.getElementById("go").onclick = function(){
+    var a = document.getElementById("p1").value, b = document.getElementById("p2").value, e = document.getElementById("e");
+    if (a.length < 6) { e.textContent = "6자리 이상으로 해 주세요."; return; }
+    if (a !== b) { e.textContent = "두 칸이 서로 달라요."; return; }
+    this.disabled = true;
+    fetch(String(C.SUPABASE_URL).replace(/\/+$/, "") + "/auth/v1/user", { method: "PUT",
+      headers: { "apikey": C.SUPABASE_KEY, "Authorization": "Bearer " + tok, "Content-Type": "application/json" }, body: JSON.stringify({ password: a }) })
+      .then(function(r){ if (!r.ok) throw new Error(r.status); box.innerHTML = '<p class="ok">비밀번호를 바꿨어요.</p><p>앱으로 돌아가 새 비밀번호로 로그인하세요.</p>'; })
+      .catch(function(){ e.textContent = "바꾸지 못했어요. 링크가 오래됐으면 앱에서 다시 요청해 주세요."; document.getElementById("go").disabled = false; });
+  };
+})();
+</script>
+</body>
+</html>

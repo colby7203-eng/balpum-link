@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수리 사진</title>
+<script src="config.js"></script>
+<style>
+  body{margin:0;font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:#F4F6FB;color:#0F172A;word-break:keep-all}
+  .hd{background:#1E2A78;color:#fff;padding:18px 16px}.hd b{font-size:20px}.hd div{font-size:13px;opacity:.85;margin-top:3px}
+  .bd{max-width:640px;margin:0 auto;padding:14px}.cd{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid #E2E8F0}
+  .t{font-size:13px;color:#475569}.v{font-size:17px;font-weight:700;margin-top:2px}
+  img{width:100%;border-radius:10px;margin-bottom:10px;display:block}
+  .ft{font-size:13px;color:#475569;text-align:center;margin:18px 0;line-height:1.7}a{color:#1E2A78;font-weight:700}
+  .by{font-size:11px;color:#94A3B8;text-align:center;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="out"><div class="hd"><b>수리 사진</b></div><div class="bd"><div class="cd">불러오는 중…</div></div></div>
+<script>
+(function(){
+  var DAYS = 14;
+  var C = window.BALPUM_CONFIG || {};
+  var k = new URLSearchParams(location.search).get("k") || "";
+  function h(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function dongOf(a){ var m = String(a || "").match(/([가-힣]{1,6}\d{0,2}(?:동|리|가|읍|면))(?=[\s\d\-,(]|$)/); return m ? m[1] : ""; }
+  function elev(v){ return v === "있음" ? " · 엘리베이터 있음" : v === "없음" ? " · 엘리베이터 없음" : ""; }
+  function row(t, v){ return v ? '<div class="cd"><div class="t">' + t + '</div><div class="v">' + h(v) + '</div></div>' : ""; }
+  function show(html){ document.getElementById("out").innerHTML = html + '<div class="by">발품투어 매물장</div>'; }
+  function none(msg){ show('<div class="hd"><b>수리 사진</b></div><div class="bd"><div class="cd">' + msg + '</div></div>'); }
+  if (k.length < 8) { none("사진을 찾을 수 없어요. 링크가 맞는지 확인해 주세요."); return; }
+  fetch(String(C.SUPABASE_URL || "").replace(/\/+$/, "") + "/rest/v1/rpc/public_repair", {
+    method: "POST", headers: { "apikey": C.SUPABASE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ k: k })
+  }).then(function(r){ return r.json(); }).then(function(r){
+    if (!r || !r.job) { none("사진을 찾을 수 없어요. 링크가 맞는지 확인해 주세요."); return; }
+    var j = r.job, mobile = String(r.mobile || "");
+    var contact = h(r.office || "") + (mobile ? ' · <a href="tel:' + h(mobile.replace(/\D/g, "")) + '">' + h(mobile) + '</a>' : "");
+    var made = new Date(String(j.created || "").replace(" ", "T") + "+09:00");
+    if (isNaN(made.getTime())) made = new Date(r.created);
+    var old = !isNaN(made.getTime()) && Date.now() - made.getTime() > DAYS * 86400000;
+    if (old || j.status === "닫음") {
+      show('<div class="hd"><b>수리 사진</b></div><div class="bd"><div class="cd">보는 기간(' + DAYS + '일)이 지나 닫힌 링크예요.<br>필요하시면 연락 주세요.</div><div class="ft">' + contact + '</div></div>');
+      return;
+    }
+    var ps = r.photos || [];
+    var imgs = ps.map(function(b){ return b ? '<img src="data:image/jpeg;base64,' + b + '" alt="사진">' : ""; }).join("");
+    var mv = j.cat === "move" ? (j.move || {}) : null;
+    var out = mv ? ('<div class="hd"><b>이사 견적 문의</b><div>' + h(mv.date || "") + '</div></div><div class="bd">' +
+        row("출발", (mv.fromDong || "") + (mv.floorFrom ? " " + mv.floorFrom + "층" : "") + elev(mv.elevFrom)) +
+        row("도착", (j.dong || mv.toDong || "") + (mv.floorTo ? " " + mv.floorTo + "층" : "") + elev(mv.elevTo)) +
+        row("집", [mv.size, mv.pack].filter(function(x){ return x; }).join(" · ")) + row("짐", mv.items))
+      : ('<div class="hd"><b>수리 견적 문의</b><div>' + h(j.dong || "") + ' · ' + h((j.types || []).join(" · ")) + '</div></div><div class="bd">' +
+        (j.memo ? '<div class="cd"><div class="t">내용</div><div class="v">' + h(j.memo) + '</div></div>' : ''));
+    out += (mv && !ps.length ? '' : '<div class="cd"><div class="t">사진 ' + ps.length + '장</div><div style="margin-top:8px">' + (imgs || '<div class="t">사진이 아직 없어요.</div>') + '</div></div>') +
+      '<div class="ft">대략적인 비용과 ' + (mv ? '그날 가능 여부를' : '가능한 날짜를') + ' 문자로 알려 주시면 감사하겠습니다.<br>' + contact + '</div></div>';
+    show(out);
+  }).catch(function(){ none("잠시 연결이 안 돼요. 조금 뒤 다시 열어 주세요."); });
+})();
+</script>
+</body>
+</html>
