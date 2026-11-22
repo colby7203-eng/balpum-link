@@ -6,5 +6,5 @@ window.BALPUM_CONFIG = {
   SHARE_BASE: "https://colby7203-eng.github.io/balpum-link/rp.html",
   // 매물장 늘리는 방법을 안내하는 홈페이지 (도메인·노션 주소)
   HOMEPAGE: "https://colby7203-eng.github.io/balpum-link/",
-  VERSION: "발품 v1.1"
+  VERSION: "발품 v1.2"
 };

@@ -5,7 +5,16 @@
    ===================================================================== */
 (function () {
   "use strict";
-  var IN_APP = !!window.Capacitor;              // 안드로이드 앱 안 (인쇄 대신 저장 → PC에서 인쇄)
+  var IN_APP = !!window.Capacitor;              // 안드로이드 앱 안
+  function nativePrinter() {                     // 앱에 넣은 인쇄 기능 (와이파이 프린터 · PDF로 저장)
+    var C = window.Capacitor; if (!C) return null;
+    try { return (C.Plugins && C.Plugins.BalpumPrint) || (C.registerPlugin ? C.registerPlugin("BalpumPrint") : null); } catch (e) { return null; }
+  }
+  function printHtml(html, name) {
+    var P = nativePrinter();
+    if (!P || !P.print) return Promise.reject(new Error("이 앱 버전은 핸드폰 인쇄가 안 돼요. 저장한 뒤 PC에서 인쇄해 주세요."));
+    return P.print({ html: html, name: name || "발품 인쇄" });
+  }
 
   /* ---------- 꾸밈 표시 → HTML ---------- */
   var TOKENS = [
@@ -92,20 +101,25 @@
   }
 
   /* ---------- 미리보기 · 인쇄 창 ---------- */
-  function preview(html, title) {
+  function preview(html, title, forPrintHtml) {
     var ov = document.createElement("div");
     ov.id = "fyOv";
     ov.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;display:flex;flex-direction:column";
     ov.innerHTML = '<div style="display:flex;gap:8px;padding:10px;background:#1E2A78;align-items:center">' +
       '<b style="color:#fff;flex:1">' + h(title || "미리보기") + '</b>' +
-      (IN_APP ? '<span style="color:#C7D2FE;font-size:13px">인쇄는 PC에서 해 주세요</span>' : '<button id="fyPrint" style="background:#F97316;color:#fff;border:0;border-radius:999px;padding:9px 16px;font-weight:800">🖨 인쇄 (A4)</button>') +
+      '<button id="fyPrint" style="background:#F97316;color:#fff;border:0;border-radius:999px;padding:9px 16px;font-weight:800">🖨 인쇄 (A4)</button>' +
       '<button id="fyClose" style="background:#fff;border:0;border-radius:999px;padding:9px 14px;font-weight:700">닫기</button></div>' +
       '<iframe id="fyFrame" style="flex:1;border:0;background:#e5e7eb"></iframe>';
     document.body.appendChild(ov);
     var fr = document.getElementById("fyFrame");
     fr.srcdoc = html;
     document.getElementById("fyClose").onclick = function () { ov.remove(); };
-    if (document.getElementById("fyPrint")) document.getElementById("fyPrint").onclick = function () {
+    document.getElementById("fyPrint").onclick = function () {
+      if (IN_APP) {
+        toast("인쇄 창을 여는 중… (프린터를 고르거나 'PDF로 저장')");
+        printHtml(forPrintHtml || html, title).catch(function (e) { toast(e.message || String(e)); });
+        return;
+      }
       try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast("인쇄 창을 열지 못했어요: " + e.message); }
     };
   }
@@ -132,14 +146,24 @@
   window.showFlyerHome = function (fromHist) {
     if (!fromHist) nav("flyer");
     window.scrollTo(0, 0);
-    $("app").innerHTML = '<div class="top"><button class="back" id="bk">← 처음</button><h2>홍보장 · 안내문</h2></div>' +
-      '<div class="card"><button class="btn" id="fyList">📋 매물 목록에서 골라 만들기</button>' +
-      '<button class="btn ghost" id="fyNew">✏️ 바로 만들기 (사진·내용 직접)</button>' +
-      '<div class="hint">' + (IN_APP ? '핸드폰에서 만들어 <b>저장</b>해 두고, PC에서 발품을 열어 <b>인쇄</b>하세요. 사진은 앨범의 원본에서 고르면 선명해요.'
-                                       : '매물 사진은 핸드폰에서 작게 줄여 저장돼서 A4로 크게 뽑으면 흐릴 수 있어요. 선명하게 하려면 <b>PC의 원본 사진</b>을 고르세요.') + '</div></div>' +
+    $("app").innerHTML = FY_CSS + '<div class="top"><button class="back" id="bk">← 처음</button><h2>🖨 출력 센터</h2></div>' +
+      '<div class="card"><div class="sect" style="margin-top:0">📢 A4 광고 홍보장</div>' +
+      '<button class="btn" id="fyNew">✏️ 바로 만들기 (기본 샘플에서 시작)</button>' +
+      '<button class="btn ghost" id="fyList">📋 매물 목록에서 골라 만들기</button>' +
+      '<div class="hint">사무실 앞 유리창·전단에 붙이는 큰 글씨 홍보장이에요. 목록에서 고르면 그 매물의 방 구조·가격이 저절로 들어가요.</div></div>' +
+      '<div class="card"><div class="sect" style="margin-top:0">📄 손님 안내문</div>' +
+      '<div class="howto" style="margin:0 0 8px"><b>만드는 순서</b><ol>' +
+      '<li><b>매물 목록</b>에서 매물을 눌러 상세 화면으로 가요</li>' +
+      '<li>아래쪽 <b>[📄 손님 안내문]</b>을 눌러요</li>' +
+      '<li><b>동네만</b> 보여 줄지, <b>번지·호수까지</b> 적을지 고르고 사진을 4장까지 골라요</li>' +
+      '<li><b>👀 미리보기</b> → <b>🖨 인쇄</b> (' + (IN_APP ? '와이파이 프린터 또는 PDF로 저장해서 카톡으로' : 'A4') + ')</li></ol></div>' +
+      '<button class="btn ghost" id="gdList">📋 매물 목록에서 고르기</button></div>' +
+      '<div class="card"><div class="sect" style="margin-top:0">곧 더 뽑을 수 있어요</div>' +
+      '<div class="hint" style="margin-top:0">🗺 답사순서표 · 🏠 매물 안내장(여러 매물) · 🏦 전세대출 문의서 · 👥 고객 목록 — 업데이트로 하나씩 늘어나요.</div></div>' +
       '<div class="sect">💾 저장한 홍보장 · 안내문</div><div id="fySaved"><div class="hint">불러오는 중…</div></div>';
     $("bk").onclick = function () { showHome(); };
-    $("fyList").onclick = function () { toast("목록에서 매물을 누르고, 상세 화면의 [📢 홍보장] 또는 [📄 손님 안내문]을 누르세요."); showList(); };
+    $("fyList").onclick = function () { toast("목록에서 매물을 누르고, 상세 화면의 [📢 홍보장]을 누르세요."); showList(); };
+    $("gdList").onclick = function () { toast("목록에서 매물을 누르고, 상세 화면의 [📄 손님 안내문]을 누르세요."); showList(); };
     $("fyNew").onclick = function () { openFlyer(null); };
     listSaved().then(function (l) {
       $("fySaved").innerHTML = l.length ? l.map(function (x) {
@@ -162,20 +186,65 @@
     if (ph.length || !it.photo_count) return Promise.resolve(ph);
     return call("appPhotos", PIN, it.id).then(function (t) { it.photo_url = t || ""; return photosOf(it.photo_url); });
   }
+  /* 기본 샘플: 사장님이 실제로 쓰던 홍보장 17개의 평균 — 사진 없이 큰 글씨 (제목 66 · 본문 60 · 가격 80pt) */
+  var SAMPLES = [
+    { name: "급매 추천 매물", title: "급매 추천 매물", room: "방3 화2", lines: ["역세권 도보 5분", "올수리", "즉시 입주 가능"], price: "매매 2억 4천", theme: "red_blue" },
+    { name: "반전세 추천 매물", title: "반전세 추천 매물", room: "방2 화1", lines: ["관리비 저렴", "이사날짜 협의", "EV OK"], price: "반전세 3천/50", theme: "red_blue" },
+    { name: "월세 추천 매물", title: "월세 추천 매물", room: "원룸", lines: ["풀옵션", "역세권 도보 3분", "즉시 입주 가능"], price: "월세 500/45", theme: "red_blue" },
+    { name: "매매 추천 매물", title: "매매 추천 매물", room: "방3 화2", lines: ["남향", "주차 가능", "학교 가까움"], price: "매매 3억 2천", theme: "red_blue" },
+    { name: "빌라 전세 매물", title: "빌라 전세 매물", room: "방2 화1", lines: ["LH전세 가능", "즉시 입주 가능", "올수리"], price: "전세 1억 6천", theme: "red_blue" },
+    { name: "신축빌라 월세", title: "신축빌라 월세", room: "방2 화1", lines: ["신축 첫 입주", "EV OK", "주차 가능"], price: "월세 1000/70", theme: "blue" }
+  ];
+  var PHRASES = ["즉시 입주 가능", "LH전세 가능", "역세권 도보 5분", "올수리", "이사날짜 협의", "EV OK", "주차 가능", "풀옵션", "남향", "관리비 저렴"];
+  var HEAD_BY = { 0: 66, 1: 54, 2: 50, 4: 48 }, FOOT_BY = { 0: 80, 1: 60, 2: 56, 4: 54 };
+  var PHOTO_H_BY = { 0: 100, 1: 150, 2: 95, 4: 85 }, BODY_BY = { 0: 60, 1: 30, 2: 24, 4: 22 };
+  function dealTitle(it) {
+    var d = String((it && it.deal_type) || "");
+    return /월세/.test(d) ? "월세 추천 매물" : /반전세/.test(d) ? "반전세 추천 매물" : /전세/.test(d) ? "전세 추천 매물" : /매매/.test(d) ? "매매 추천 매물" : "추천 매물";
+  }
+  function bodyOf(room, lines) { return (room ? "{박스}" + room + "{/박스}\n" : "") + (lines || []).filter(Boolean).join("\n"); }
   function defaults(it) {
     var mg = it && typeof mgmtText === "function" ? mgmtText(it) : "";
-    var dong = it && typeof dongOf === "function" ? dongOf(it) : "";
+    var S = SAMPLES[0];
     return {
-      title: it ? (dong ? dong + " " : "") + (it.room_structure || it.name || "") : "",
-      price: it ? [it.deal_type, it.price].filter(Boolean).join(" ") : "",
-      t1: it ? [it.room_structure, it.direction ? it.direction + "향" : "", mg ? "관리비 " + mg : ""].filter(Boolean).join(" · ") : "",
+      title: it ? dealTitle(it) : S.title,
+      price: it ? [it.deal_type, it.price].filter(Boolean).join(" ") : S.price,
+      t1: it ? bodyOf(it.room_structure || "", [it.direction ? it.direction + "향" : "", mg ? "관리비 " + mg : ""]) : bodyOf(S.room, S.lines),
       t2: "", boxText: "", boxBlue: false, boxAt: "middle",
-      count: 1, photos: [], on: { title: true, photo: true, box: false, body: true, price: true },
-      theme: "red_blue", border: "테마색", borderW: "보통", headSize: 54, bodySize: 24, footSize: 54, photoH: 100, fit: "cover", footColor: "navy",
-      mark: it ? String(it.id) : ""
+      count: 0, photos: [], on: { title: true, photo: false, box: false, body: true, price: true },
+      theme: "red_blue", border: "테마색", borderW: "보통", headSize: 66, bodySize: 60, footSize: 80, photoH: 100, fit: "cover", footColor: "navy",
+      mark: it ? String(it.id) : "", sample: it ? "" : S.name
     };
   }
-  var PHOTO_H_BY = { 0: 100, 1: 150, 2: 95, 4: 85 }, BODY_BY = { 0: 40, 1: 26, 2: 22, 4: 20 };
+  function applySample(F, S, it) {
+    F.title = S.title; F.theme = S.theme; F.footColor = "navy";
+    F.t1 = bodyOf(it && it.room_structure ? it.room_structure : S.room, S.lines); F.t2 = "";
+    F.price = it && it.price ? [it.deal_type, it.price].filter(Boolean).join(" ") : S.price;
+    F.count = 0; F.on.photo = false; F.on.title = F.on.body = F.on.price = true; F.on.box = false;
+    F.headSize = 66; F.bodySize = 60; F.footSize = 80; F.sample = S.name;
+  }
+  function sampleCard(S, on) {
+    var hb = S.theme === "blue" ? "#2563eb" : "#dc2626";
+    return '<button class="fySm' + (on ? ' on' : '') + '" data-s="' + h(S.name) + '" type="button"><span class="fySmPg" style="border-color:' + hb + '">' +
+      '<span class="fySmH" style="background:' + hb + '">' + h(S.title) + '</span><span class="fySmB"><span class="fySmBox">' + h(S.room) + '</span>' +
+      S.lines.map(function (l) { return '<span>' + h(l) + '</span>'; }).join("") + '</span><span class="fySmF">' + h(S.price) + '</span></span><span class="fySmN">' + h(S.name) + '</span></button>';
+  }
+  var FY_CSS = '<style>.fySms{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x mandatory}' +
+    '.fySm{flex:0 0 108px;border:0;background:transparent;padding:0;text-align:center;scroll-snap-align:start;cursor:pointer}' +
+    '.fySmPg{display:flex;flex-direction:column;width:104px;height:146px;border:3px solid;border-radius:4px;background:#fff;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.12)}' +
+    '.fySm.on .fySmPg{outline:3px solid #F97316;outline-offset:2px}' +
+    '.fySmH{color:#fff;font-weight:800;font-size:11px;padding:5px 2px;line-height:1.15}' +
+    '.fySmB{flex:1;display:flex;flex-direction:column;justify-content:center;gap:2px;font-weight:800;font-size:9.5px;color:#0f172a;line-height:1.2}' +
+    '.fySmBox{align-self:center;border:1.5px solid #dc2626;color:#b91c1c;background:#fff1f2;border-radius:3px;padding:0 4px;font-size:10px}' +
+    '.fySmF{background:#93c5fd;color:#1e3a8a;font-weight:800;font-size:11px;padding:5px 2px}' +
+    '.fySmN{display:block;font-size:12px;font-weight:700;margin-top:5px;color:#1E2A78}' +
+    '.howto{background:#EEF2FF;border-radius:14px;padding:10px 12px;font-size:13.5px;line-height:1.6;margin-bottom:12px}.howto b{color:#1E2A78}.howto ol{margin:4px 0 0;padding-left:20px}</style>';
+  var HOWTO_FLYER = '<div class="howto"><b>📢 홍보장 만드는 순서</b><ol>' +
+    '<li>위 <b>기본 샘플</b> 중 하나를 누르면 글씨 크기·모양이 그대로 들어가요</li>' +
+    '<li>본문·가격을 고치고, 아래 <b>자주 쓰는 말</b>을 눌러 한 줄씩 넣어요</li>' +
+    '<li><b>👀 미리보기</b> → <b>🖨 인쇄</b> : ' + (IN_APP ? '사무실 와이파이 프린터를 고르거나 <b>PDF로 저장</b>해서 카톡으로 보내요' : 'A4로 바로 뽑혀요') + '</li>' +
+    '<li><b>💾 저장</b>해 두면 PC·핸드폰 어디서나 다시 열려요 (핸드폰에서 만들고 PC에서 뽑아도 돼요)</li></ol>' +
+    '<div style="margin-top:4px">사진을 넣을 때는 <b>' + (IN_APP ? '앨범의 원본 사진' : 'PC의 원본 사진') + '</b>을 고르세요. 매물에 저장된 사진은 작게 줄여져 있어 A4로 크게 뽑으면 흐려요.</div></div>';
 
   window.openFlyer = function (it, F, saveId) {
     F = F || defaults(it);
@@ -186,7 +255,8 @@
       var chip = function (k, label) { return '<button class="chip' + (F.on[k] ? ' on' : '') + '" data-on="' + k + '">' + (F.on[k] ? '✔ ' : '') + label + '</button>'; };
       var sel = function (id, cur, opts) { return '<select id="' + id + '">' + opts.map(function (o) { var v = o[0], t = o[1] || o[0]; return '<option value="' + h(v) + '"' + (String(cur) === String(v) ? ' selected' : '') + '>' + h(t) + '</option>'; }).join("") + '</select>'; };
       var n = Number(F.count);
-      $("app").innerHTML = '<div class="top"><button class="back" id="bk">← 뒤로</button><h2>📢 A4 홍보장</h2></div>' +
+      $("app").innerHTML = FY_CSS + '<div class="top"><button class="back" id="bk">← 뒤로</button><h2>📢 A4 홍보장</h2></div>' +
+        '<div class="card"><label>기본 샘플 <span class="hint">(누르면 글씨체·크기가 그대로)</span></label><div class="fySms">' + SAMPLES.map(function (S) { return sampleCard(S, F.sample === S.name); }).join("") + '</div>' + HOWTO_FLYER + '</div>' +
         '<div class="card"><label>홍보장에 넣을 것</label><div class="stat">' + chip("title", "상단 제목") + chip("photo", "사진") + chip("box", "박스 글") + chip("body", "본문") + chip("price", "하단 가격") + '</div>' +
         '<label for="fyT">상단 제목</label><input id="fyT" value="' + h(F.title) + '">' +
         '<label>사진 매수</label><div class="stat">' + [0, 1, 2, 4].map(function (k) { return '<button class="chip' + (n === k ? ' on' : '') + '" data-n="' + k + '">' + (k ? k + "장" : "사진 없이") + '</button>'; }).join("") + '</div>' +
@@ -197,6 +267,7 @@
         '<label for="fyB">박스 글 <span class="hint">(통째로 박스 안에)</span></label><input id="fyB" value="' + h(F.boxText) + '">' +
         '<div class="two">' + sel("fyBA", F.boxAt, [["top", "박스: 맨 위"], ["middle", "박스: 가운데"], ["bottom", "박스: 맨 아래"]]) + sel("fyBC", F.boxBlue ? "1" : "", [["", "빨간 박스"], ["1", "파란 박스"]]) + '</div>' +
         '<label for="fy1">' + (n === 4 ? '본문 (위 사진 아래)' : n === 2 ? '본문 (첫 사진 아래)' : '본문') + '</label><textarea id="fy1" rows="4">' + h(F.t1) + '</textarea>' +
+        '<div class="hint">자주 쓰는 말 (누르면 본문에 한 줄 더해져요)</div><div class="stat">' + PHRASES.map(function (p) { return '<button class="chip" data-ph="' + h(p) + '" type="button">+ ' + h(p) + '</button>'; }).join("") + '</div>' +
         (n === 2 || n === 4 ? '<label for="fy2">본문 (' + (n === 4 ? '아래 사진 아래' : '둘째 사진 아래') + ')</label><textarea id="fy2" rows="3">' + h(F.t2) + '</textarea>' : '') +
         '<div class="hint">글자를 길게 눌러 고른 뒤 꾸미기: </div><div class="stat"><button class="chip" data-w="빨강">빨간 글씨</button><button class="chip" data-w="박스">빨간 박스</button><button class="chip" data-w="파란박스">파란 박스</button><button class="chip" data-w="형광">형광펜</button></div>' +
         '<label for="fyP">하단 가격</label><input id="fyP" value="' + h(F.price) + '">' +
@@ -217,7 +288,7 @@
       F.title = v("fyT"); F.boxText = v("fyB"); F.boxAt = v("fyBA"); F.boxBlue = v("fyBC") === "1"; F.t1 = v("fy1");
       if ($("fy2")) F.t2 = v("fy2");
       F.price = v("fyP"); F.theme = v("fyTh"); F.footColor = v("fyFC"); F.border = v("fyBo"); F.borderW = v("fyBW"); F.fit = v("fyFit");
-      F.photoH = Number(v("fyPH")) || 100; F.headSize = Number(v("fyHS")) || 54; F.bodySize = Number(v("fyBS")) || 24; F.footSize = Number(v("fyFS")) || 54;
+      F.photoH = Number(v("fyPH")) || 100; F.headSize = Number(v("fyHS")) || 66; F.bodySize = Number(v("fyBS")) || 60; F.footSize = Number(v("fyFS")) || 80;
       if (!$("fyMk").checked) F.mark = ""; else if (!F.mark) F.mark = it ? String(it.id) : "";
     }
     var lastTa = null;
@@ -226,7 +297,7 @@
       ["fy1", "fy2"].forEach(function (id) { if ($(id)) $(id).onfocus = function () { lastTa = this; }; });
       Array.prototype.forEach.call(document.querySelectorAll("[data-on]"), function (b) { b.onclick = function () { read(); var k = b.getAttribute("data-on"); F.on[k] = !F.on[k]; if (k === "box" && F.on.box && !F.boxText) toast("박스 글 칸에 글을 써 주세요."); draw(); }; });
       Array.prototype.forEach.call(document.querySelectorAll("[data-n]"), function (b) { b.onclick = function () {
-        read(); var k = Number(b.getAttribute("data-n")); F.count = k; F.on.photo = k > 0; F.photoH = PHOTO_H_BY[k]; F.bodySize = BODY_BY[k];
+        read(); var k = Number(b.getAttribute("data-n")); F.count = k; F.on.photo = k > 0; F.photoH = PHOTO_H_BY[k]; F.bodySize = BODY_BY[k]; F.headSize = HEAD_BY[k]; F.footSize = FOOT_BY[k];
         if (F.photos.length > k && k) F.photos = F.photos.slice(0, k); draw(); }; });
       Array.prototype.forEach.call(document.querySelectorAll("#fyPh img"), function (im) { im.onclick = function () { read(); F.photos.splice(Number(im.getAttribute("data-x")), 1); draw(); }; });
       Array.prototype.forEach.call(document.querySelectorAll("#fySrc img"), function (im) { im.onclick = function () {
@@ -238,6 +309,12 @@
         if (s === e) { toast("꾸밀 글자를 먼저 골라(길게 눌러) 주세요."); return; }
         ta.value = ta.value.slice(0, s) + "{" + w + "}" + ta.value.slice(s, e) + "{/" + w + "}" + ta.value.slice(e);
         toast("꾸몄어요. 미리보기로 확인하세요."); }; });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-s]"), function (b) { b.onclick = function () {
+        read(); var S = SAMPLES.filter(function (x) { return x.name === b.getAttribute("data-s"); })[0]; if (!S) return;
+        applySample(F, S, it); draw(); toast("‘" + S.name + "’ 샘플을 넣었어요. 글을 고치고 미리보기를 눌러 보세요."); }; });
+      Array.prototype.forEach.call(document.querySelectorAll("[data-ph]"), function (b) { b.onclick = function () {
+        var ta = lastTa || $("fy1"); if (!ta) return; var p = b.getAttribute("data-ph");
+        ta.value = ta.value.replace(/\s+$/, "") + (ta.value.trim() ? "\n" : "") + p; read(); toast("‘" + p + "’ 넣었어요."); }; });
       if ($("fyFile")) $("fyFile").onclick = function () { $("fyIn").click(); };
       $("fyIn").onchange = function () {
         read(); var files = Array.prototype.slice.call(this.files || []); var room = Number(F.count) - F.photos.length;
@@ -249,7 +326,7 @@
         read();
         var n = F.on.photo ? Number(F.count) : 0;
         if (n && F.photos.length < n) { toast("사진 " + n + "장을 골라 주세요. (지금 " + F.photos.length + "장)"); return; }
-        preview(flyerHtml(F), "A4 홍보장 미리보기");
+        preview(flyerHtml(F), "A4 홍보장 미리보기", flyerHtml(F, true));
       };
       $("fySave").onclick = function () {
         read(); var b = this; b.disabled = true; saveId = saveId || newId();
@@ -261,7 +338,7 @@
     draw();
     if (it) listingPhotos(it).then(function (ph) {
       srcPhotos = ph;
-      if (!F.photos.length && ph.length) F.photos = ph.slice(0, Number(F.count) || 1);
+      if (!F.photos.length && ph.length && Number(F.count)) F.photos = ph.slice(0, Number(F.count));
       if (document.getElementById("fyT")) { read(); draw(); }
     }).catch(function () {});
   };
@@ -296,7 +373,8 @@
     var src = [];
     function draw() {
       var f = function (id, label, v) { return '<label for="' + id + '">' + label + '</label><input id="' + id + '" value="' + h(v || "") + '">'; };
-      $("app").innerHTML = '<div class="top"><button class="back" id="bk">← 뒤로</button><h2>📄 손님 안내문</h2></div><div class="card">' +
+      $("app").innerHTML = FY_CSS + '<div class="top"><button class="back" id="bk">← 뒤로</button><h2>📄 손님 안내문</h2></div>' +
+        '<div class="howto">손님에게 건네거나 카톡으로 보내는 A4 한 장이에요. 칸을 고친 뒤 <b>👀 미리보기 → 🖨 인쇄</b>' + (IN_APP ? ' (와이파이 프린터 또는 <b>PDF로 저장</b>)' : '') + '. 사무소 이름·전화는 [내 사무소]에 적은 것이 들어가요.</div><div class="card">' +
         f("gT", "매물 이름", G.title) + f("gP", "가격", G.price) + f("gA", "주소", G.full ? G.addrFull : (G.dong || G.addrFull)) +
         '<label class="chk"><input type="checkbox" id="gFull"' + (G.full ? ' checked' : '') + '> 번지·호수까지 자세히 (끄면 동네만)</label>' +
         f("gR", "방 구조", G.room) + f("gD", "방향", G.dir) + f("gM", "관리비", G.mgmt) + f("gI", "입주 가능", G.movein) + f("gK", "주차", G.parking) +
@@ -313,7 +391,7 @@
       $("gFile").onclick = function () { $("gIn").click(); };
       $("gIn").onchange = function () { read(); var fs = Array.prototype.slice.call(this.files || []).slice(0, 4 - G.photos.length);
         Promise.all(fs.map(function (x) { return fileToJpeg(x, 1200); })).then(function (a) { G.photos = G.photos.concat(a); draw(); }).catch(function (e) { toast(e.message); }); };
-      $("gPrev").onclick = function () { read(); var g = clone(G); g.addr = G.full ? G.addrFull : (G.dong || G.addrFull); preview(guideHtml(g), "손님 안내문 미리보기"); };
+      $("gPrev").onclick = function () { read(); var g = clone(G); g.addr = G.full ? G.addrFull : (G.dong || G.addrFull); preview(guideHtml(g), "손님 안내문 미리보기", guideHtml(g)); };
       $("gSave").onclick = function () { read(); var b = this; b.disabled = true; saveId = saveId || newId(); var g = clone(G); g.name = G.title;
         saveDoc(saveId, g, "guide").then(function () { b.disabled = false; toast("저장했어요."); }).catch(function (e) { b.disabled = false; toast(errText(e)); }); };
     }

@@ -7,12 +7,14 @@
 <script src="config.js"></script>
 <script src="backend.js"></script>
 <script src="flyer.js"></script>
+<script src="bp.js"></script>
+<script src="cal.js"></script>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1E2A78">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Nanum+Pen+Script&family=Nanum+Myeongjo:wght@700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy:#1E2A78; --navy-d:#151E5C; --sky:#E1F2FB; --sky-line:#9CCBE6;
@@ -255,8 +257,13 @@
   [hidden]{display:none!important}
 
   /* 발품투어 매물장 (판매용) */
-  .hero.bp{text-align:left;background:linear-gradient(160deg,#1E2A78 0%,#26338F 100%)}
-  .bpT{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1.1;display:flex;align-items:baseline;gap:2px;flex-wrap:wrap}
+  .hero.bp{text-align:center;background:linear-gradient(160deg,#1E2A78 0%,#26338F 100%)}
+  .bpFoot{width:74px;height:74px;margin:0 auto 6px;background:#fff;border-radius:24px;padding:8px;box-sizing:border-box;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+  .bpFoot svg{width:100%;height:100%;display:block}
+  .bpT{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1.1;display:flex;align-items:baseline;justify-content:center;gap:2px;flex-wrap:wrap}
+  .howkey{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:10px 12px;font-size:13.5px;line-height:1.6;margin:4px 0 8px;color:#0F172A}
+  .howkey ol{margin:4px 0 0;padding-left:20px}
+  .howkey .safe{background:#ECFDF5;border-radius:10px;padding:8px 10px;color:#065F46}
   .bpT .tour{font-family:'Nanum Pen Script',cursive;font-weight:400;font-size:44px;color:#FDBA74;margin-left:2px}
   .bpT .mj{font-size:13px;font-weight:700;background:#F97316;color:#fff;border-radius:999px;padding:3px 10px;margin-left:10px;align-self:center;letter-spacing:0}
   .bpS{font-size:13.5px;color:#C7D2FE;margin-top:6px;font-weight:600}
@@ -667,6 +674,8 @@ var IC = {
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   truck: '<path d="M2 6h11v10H2zM13 9h4l4 4v3h-8"/><circle cx="6" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/>',
   hash: '<path d="M5 9h15M4 15h15M10 3L8 21M16 3l-2 18"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  printer: '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
   spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'
 };
 function IC_SVG(name){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (IC[name] || "") + '</svg>'; }
@@ -715,7 +724,7 @@ function iconize(root){
 
 var MEMBER_TYPES = ["개업공인중개사", "소속공인중개사·중개보조원", "컨설팅·분양", "기타"];
 function bpHero(sub){
-  return '<div class="hero bp"><div class="bpT">발품<span class="tour">투어</span><span class="mj">매물장</span></div>' +
+  return '<div class="hero bp"><div class="bpFoot">' + (window.BP_FOOT || '') + '</div><div class="bpT">발품<span class="tour">투어</span><span class="mj">매물장</span></div>' +
     '<div class="bpS">공인중개사 답사순서표 &amp; <span class="hj">臨場</span> 임장관리</div>' +
     '<div class="bpQ">발품을 기록으로 바꾸고, 기록을 노하우로 바꾸는 것</div>' + (sub ? '<div class="ofc">' + sub + '</div>' : '') + '</div>';
 }
@@ -819,7 +828,8 @@ function showHome(fromHist){
     '<div id="usage"></div>' +
     menu("hAdd", "main", "plus", "신규 매물 등록", "사진 찍어 바로 올리기") +
     menu("hList", "", "list", "매물 조회 및 관리", "검색 · 정렬 · 상태 · 휴지통") +
-    menu("hFlyer", "", "image", "홍보장 · 손님 안내문", "A4 홍보장 · 안내문 만들기 → PC에서 인쇄") +
+    menu("hFlyer", "", "printer", "출력 센터", "A4 홍보장 · 손님 안내문 · 핸드폰·PC 인쇄") +
+    menu("hCal", "", "calendar", "달력 · 다이어리 · 가계부", "음력 · 손 없는 날 · 일정 · 쓴 돈 · 택배") +
     menu("hTour", "orange", "walk", "답사", "순서 · 지도 · 칸별 사진 · 길안내") +
     menu("hCust", "", "users", "고객관리", "손님 정보 · 연락 기록 · 맞는 매물") +
     menu("hMove", "", "truck", "입주·이사", "이사 날짜 → 할 일 · 이사 견적 · 계량기 · 입주 안내") +
@@ -835,6 +845,7 @@ function showHome(fromHist){
   $("hAdd").onclick = function(){ showForm(null); };
   $("hList").onclick = function(){ showList(); };
   $("hFlyer").onclick = function(){ showFlyerHome(); };
+  $("hCal").onclick = function(){ showCal(); };
   $("hCust").onclick = function(){ showCustList(); };
   $("hTour").onclick = function(){ startTourHome(); };
   $("hRepair").onclick = function(){ showRepairHome(); };
@@ -877,7 +888,8 @@ function showOffice(fromHist){
       '<div class="card"><div class="sect" style="margin-top:0">무료 체험 · 매물장</div>' +
       '<div>요금: <b>' + (u.plan === "free" ? "무료 체험" : esc(u.plan)) + '</b></div>' +
       '<div>지금까지 등록: <b>' + (u.used || 0) + '건</b> / 무료 ' + (u.limit || 80) + '건 · 지금 진행 중 ' + (u.active || 0) + '건</div>' +
-      '<div class="hint">계약·보류된 매물은 지우지 말고 상태만 바꿔 두세요. 기록이 쌓일수록 노하우가 됩니다. 매물장 늘리는 방법은 ' + bpHomeLink("홈페이지") + '에서 보세요.</div></div>' +
+      '<div class="hint">무료 ' + (u.limit || 80) + '건을 다 쓰면 <b>월 8,000원</b>으로 진행 중 매물 100건까지 써요. 계약·보류된 매물은 지우지 말고 상태만 바꿔 두세요. 매물장 늘리는 방법은 ' + bpHomeLink("홈페이지") + '에서 보세요.</div></div>' +
+      (window.bpHomeCard ? bpHomeCard() : '') +
       '<div class="card"><div class="sect" style="margin-top:0">계정</div><div>로그인: ' + esc((BALPUM.Auth.user() || {}).email || "") + '</div>' +
       '<button class="btn ghost" id="ofOut">로그아웃</button></div>' +
       '<div class="credit">' + bpDream() + '</div>';
@@ -888,6 +900,7 @@ function showOffice(fromHist){
         .then(function(){ OFFICE_LOADED = false; toast("저장했어요."); b.disabled = false; })
         .catch(function(e){ toast(errText(e)); b.disabled = false; });
     };
+    if (window.bpHomeBind) bpHomeBind();
     $("ofOut").onclick = function(){
       if (!confirm("로그아웃할까요? 다시 들어올 때 이메일과 비밀번호가 필요해요.")) return;
       BALPUM.Auth.signOut().then(function(){ OFFICE_LOADED = false; OFFICE_INFO = { name: "", tel: "", addr: "", mobile: "" }; showLogin("", "in", "로그아웃했어요."); });
@@ -897,7 +910,7 @@ function showOffice(fromHist){
 
 // [매물v1.8.1] 📖 사용설명서 (PC 프로그램과 같은 내용)
 var MANUAL_CSS = ".manual{font-family:'맑은 고딕','Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#1e293b;line-height:1.65;font-size:15px;max-width:860px;margin:0 auto;word-break:keep-all;overflow-wrap:anywhere}\n.manual .mhead{background:#1a237e;color:#fff;border-radius:12px;padding:18px 20px;margin-bottom:14px}\n.manual .mtitle{font-size:26px;font-weight:800}\n.manual .msub{font-size:13px;opacity:.9;margin-top:4px}\n.manual h2{font-size:20px;color:#1a237e;border-bottom:3px solid #1a237e;padding-bottom:4px;margin:30px 0 10px;scroll-margin-top:10px}\n.manual h3{font-size:16px;margin:16px 0 6px;color:#0f172a}\n.manual .new{background:#ecfdf5;border:1px solid #6ee7b7;border-radius:10px;padding:10px 14px;margin:0 0 12px}\n.manual .new ul{margin:6px 0 0 18px;padding:0}\n.manual .toc{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px}\n.manual .toc ol{margin:6px 0 0 20px;padding:0;columns:2;column-gap:24px}\n.manual .toc a{color:#1d4ed8;text-decoration:none}\n.manual .hint{color:#64748b;font-size:13px}\n.manual ol.steps,.manual ul{padding-left:22px}\n.manual ol.steps li,.manual ul li{margin:4px 0}\n.manual .tip{background:#fffbeb;border-left:5px solid #f59e0b;border-radius:6px;padding:9px 12px;margin:10px 0;font-size:14px}\n.manual .tip b:first-child{color:#b45309}\n.manual table.t{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}\n.manual table.t td,.manual table.t th{border:1px solid #e2e8f0;padding:6px 8px;text-align:left;vertical-align:top}\n.manual table.t th{background:#f1f5f9}\n.manual .b{display:inline-block;border:1px solid #cbd5e1;background:#f8fafc;border-radius:5px;padding:0 6px;font-weight:700;font-size:13px;white-space:nowrap}\n.manual .b.orange{background:#ea580c;color:#fff;border-color:#c2410c}\n.manual .b.dark{background:#1a237e;color:#fff;border-color:#1a237e}\n.manual code{background:#f1f5f9;border-radius:4px;padding:0 4px;font-size:12px}\n.manual .pic{border:1px dashed #94a3b8;border-radius:10px;padding:10px;margin:8px 0;display:flex;flex-direction:column;gap:6px;align-items:center;background:#f8fafc}\n.manual .btnmock{width:260px;max-width:90%;text-align:center;border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:7px;font-weight:700}\n.manual .btnmock.orange{background:#ea580c;color:#fff;border-color:#c2410c}\n.manual .btnmock.light{background:#eef2f7;font-weight:400}\n.manual .flyerpic{width:260px;max-width:90%;margin:8px auto;border:5px solid #dc2626;border-radius:4px;background:#fff;padding:0;gap:0}\n.manual .fp-ban{background:#dc2626;color:#fff;width:100%;text-align:center;font-weight:800;padding:6px 0}\n.manual .fp-ban2{background:#93c5fd;color:#1e3a8a;width:100%;text-align:center;font-weight:800;padding:6px 0}\n.manual .fp-slot{border:2px solid #dc2626;background:#fff1f2;color:#b91c1c;border-radius:5px;margin:5px;padding:1px 8px;font-size:12px;font-weight:700}\n.manual .fp-photo{background:#e2e8f0;color:#475569;width:86%;text-align:center;padding:14px 0;margin:2px 0;font-size:12px}\n.manual .foot{text-align:center;color:#94a3b8;font-size:12px;margin:30px 0 10px}\n@media (max-width:600px){.manual{font-size:14px}.manual .toc ol{columns:1}.manual .mtitle{font-size:22px}}\n@media print{.manual h2{break-after:avoid}.manual .tip,.manual table.t,.manual .pic{break-inside:avoid}.manual .toc a{color:#1e293b}}\n";
-var MANUAL_BODY = "<div class=\"mhead\">\n  <div class=\"mtitle\">발품투어 매물장 사용법</div>\n  <div class=\"msub\">공인중개사 답사순서표 &amp; 臨場 임장관리 · 발품 v1.0 · <b>Made by 정동철</b></div>\n</div>\n\n<p><b>발품을 기록으로 바꾸고, 기록을 노하우로 바꾸는 것.</b> 매물·손님·답사·수리·입주·신축 현장을 핸드폰 하나로 챙기는 매물장입니다. 자료는 내 계정에만 저장되고, 다른 사무소는 볼 수 없어요.</p>\n\n<h2 id=\"start\">1. 처음 시작</h2>\n<ul>\n  <li><b>가입</b>: 이메일·비밀번호와 사무소 정보(이름·등록번호·핸드폰)를 넣으면 끝. 확인 메일이 오면 링크를 누른 뒤 로그인하세요.</li>\n  <li><b>내 사무소 · 계정</b>: 사무소 정보 고치기, 무료 체험 남은 건수 보기, 로그아웃.</li>\n  <li><b>무료 체험</b>: 매물을 <b>80건 등록할 때까지</b> 모든 기능이 무료예요. 계약·보류된 매물은 지우지 말고 상태만 바꿔 두세요.</li>\n</ul>\n\n<h2 id=\"list\">2. 매물 등록 · 조회</h2>\n<ul>\n  <li><b>신규 매물 등록</b>: 사진을 찍어 바로 올려요 (한 매물 12장까지, 자동으로 작게 줄여 올림).</li>\n  <li><b>매물 조회 및 관리</b>: 붙여 써도 되는 검색 (예: <code>검암동방3화1</code>), 가격 정렬, 상태(진행중·보류·우리가 계약…), 휴지통.</li>\n  <li>관리비·관리비에 들어 있는 것·계량기 위치도 적어 둘 수 있어요.</li>\n</ul>\n\n<h2 id=\"tour\">3. 답사 (발품 투어)</h2>\n<ul>\n  <li>보여 줄 집을 고르고 순서를 정하면 <b>답사순서표</b>가 돼요. 잘 짠 동선은 이름을 붙여 저장하고 다음 손님에게 다시 씁니다.</li>\n  <li><b>지도</b>로 동선 보기, 카카오맵·네이버지도로 <b>길안내</b>.</li>\n  <li><b>칸별 사진</b>: 주차장·현관·주방·안방… 칸을 누르고 찍으면 그 칸에 들어가요. 칸 목록은 고칠 수 있어요.</li>\n  <li>🧭 방향 재기로 집 방향을 매물에 저장.</li>\n</ul>\n\n<h2 id=\"cust\">4. 고객관리</h2>\n<ul>\n  <li>손님 정보·연락 기록·맞는 매물 찾기. 고친 내용은 변경 기록으로 남아요.</li>\n</ul>\n\n<h2 id=\"repair\">5. 수리 견적</h2>\n<ul>\n  <li>수리할 곳 사진을 찍고 종류를 고르면 <b>대략 견적</b>이 나와요. 단가표는 내 동네 값으로 고쳐 쓰세요.</li>\n  <li>근처 업체를 찾아 <b>한 곳씩</b> 견적 문자를 보내요. <b>내 핸드폰으로 차례로 보내기</b>: 문자 앱이 열리면 [보내기]만 누르고 돌아오면 다음 업체로 넘어가요.</li>\n  <li>문자에는 <b>사진 링크</b>가 들어가요. 업체는 로그인 없이 사진·동네·내용만 볼 수 있고, 14일이 지나면 닫혀요.</li>\n  <li>실제로 거래한 업체는 <b>내 업체 수첩</b>에 저장해 두세요.</li>\n</ul>\n\n<h2 id=\"move\">6. 입주 · 이사</h2>\n<ul>\n  <li>이사 날짜를 넣으면 할 일(전기·가스·수도·인터넷)이 차례로 나와요. 이사 견적도 업체에 한 곳씩 문의할 수 있어요.</li>\n  <li>계량기 사진은 업체 링크에 나오지 않아요.</li>\n</ul>\n\n<h2 id=\"site\">7. 신축 현장</h2>\n<ul>\n  <li>분양속지 사진을 찍어 두고 호수표·남은 세대·분양 조건·수수료를 정리해요.</li>\n  <li>AI를 연결하면 속지 사진을 읽어 호수표를 자동으로 채워 줘요. (꼭 눈으로 한 번 확인하세요)</li>\n</ul>\n\n<h2 id=\"ai\">8. AI 연결 (무료)</h2>\n<ul>\n  <li><a href=\"https://aistudio.google.com/app/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/app/apikey</a> 에서 구글 계정으로 <b>API 키 만들기</b> → 복사 → [AI 연결]에 붙여 넣기 → [연결 확인].</li>\n  <li>무료 등급에서는 보낸 사진·글을 구글이 서비스 개선에 쓸 수 있어요. <b>수리 부위·분양속지 사진만</b> 보내고, 손님 얼굴·신분증·계약서는 찍지 마세요.</li>\n  <li>\"붐벼요\"가 뜨면 1~2분 뒤 다시 누르세요.</li>\n</ul>\n\n<h2 id=\"faq\">9. 자주 묻는 것</h2>\n<ul>\n  <li><b>다른 핸드폰에서도 되나요?</b> 같은 이메일로 로그인하면 같은 자료가 보여요.</li>\n  <li><b>비밀번호를 잊었어요</b>: 로그인 화면의 [비밀번호를 잊었어요] → 메일의 링크로 새로 만들기.</li>\n  <li><b>매물장을 늘리고 싶어요</b>: 매물장 늘리는 방법은 홈페이지에서 보세요.</li>\n</ul>\n";
+var MANUAL_BODY = "<div class=\"mhead\">\n  <div class=\"mtitle\">발품투어 매물장 사용법</div>\n  <div class=\"msub\">공인중개사 답사순서표 &amp; 臨場 임장관리 · 발품 v1.2 · <b>Made by 정동철</b></div>\n</div>\n\n<p class=\"tip\">🏠 홈페이지 <b>https://colby7203-eng.github.io/balpum-link/</b><br>다른 핸드폰에 깔아 줄 때 · PC에서 쓸 때 이 주소로 들어가요. [내 사무소 · 계정]에서 복사 · 카톡·문자 보내기 · QR 보기가 돼요.</p>\n\n<p><b>발품을 기록으로 바꾸고, 기록을 노하우로 바꾸는 것.</b> 매물·손님·답사·수리·입주·신축 현장을 핸드폰 하나로 챙기는 매물장입니다. 자료는 내 계정에만 저장되고, 다른 사무소는 볼 수 없어요.</p>\n\n<h2 id=\"start\">1. 처음 시작</h2>\n<ul>\n  <li><b>가입</b>: 이메일·비밀번호와 사무소 정보(이름·등록번호·핸드폰)를 넣으면 끝. 확인 메일이 오면 링크를 누른 뒤 로그인하세요.</li>\n  <li><b>내 사무소 · 계정</b>: 사무소 정보 고치기, 무료 체험 남은 건수 보기, 로그아웃.</li>\n  <li><b>무료 체험</b>: 매물을 <b>80건 등록할 때까지</b> 모든 기능이 무료예요. 그 뒤로는 <b>월 8,000원</b>(진행 중 매물 100건까지). 계약·보류된 매물은 지우지 말고 상태만 바꿔 두세요.</li>\n  <li><b>PC에서 쓰기</b>: PC 크롬·엣지로 홈페이지 → [PC에서 발품 열기] → 같은 이메일로 로그인. 오른쪽 아래 <b>[💻 바탕화면에 깔기]</b>를 누르면 바탕화면 아이콘이 생겨요.</li>\n</ul>\n\n<h2 id=\"list\">2. 매물 등록 · 조회</h2>\n<ul>\n  <li><b>신규 매물 등록</b>: 사진을 찍어 바로 올려요 (한 매물 12장까지, 자동으로 작게 줄여 올림).</li>\n  <li><b>매물 조회 및 관리</b>: 붙여 써도 되는 검색 (예: <code>검암동방3화1</code>), 가격 정렬, 상태(진행중·보류·우리가 계약…), 휴지통.</li>\n  <li>관리비·관리비에 들어 있는 것·계량기 위치도 적어 둘 수 있어요.</li>\n</ul>\n\n<h2 id=\"tour\">3. 답사 (발품 투어)</h2>\n<ul>\n  <li>보여 줄 집을 고르고 순서를 정하면 <b>답사순서표</b>가 돼요. 잘 짠 동선은 이름을 붙여 저장하고 다음 손님에게 다시 씁니다.</li>\n  <li><b>지도</b>로 동선 보기, 카카오맵·네이버지도로 <b>길안내</b>.</li>\n  <li><b>칸별 사진</b>: 주차장·현관·주방·안방… 칸을 누르고 찍으면 그 칸에 들어가요. 칸 목록은 고칠 수 있어요.</li>\n  <li>🧭 방향 재기로 집 방향을 매물에 저장.</li>\n</ul>\n\n<h2 id=\"cust\">4. 고객관리</h2>\n<ul>\n  <li>손님 정보·연락 기록·맞는 매물 찾기. 고친 내용은 변경 기록으로 남아요.</li>\n</ul>\n\n<h2 id=\"repair\">5. 수리 견적</h2>\n<ul>\n  <li>수리할 곳 사진을 찍고 종류를 고르면 <b>대략 견적</b>이 나와요. 단가표는 내 동네 값으로 고쳐 쓰세요.</li>\n  <li>근처 업체를 찾아 <b>한 곳씩</b> 견적 문자를 보내요. <b>내 핸드폰으로 차례로 보내기</b>: 문자 앱이 열리면 [보내기]만 누르고 돌아오면 다음 업체로 넘어가요.</li>\n  <li>문자에는 <b>사진 링크</b>가 들어가요. 업체는 로그인 없이 사진·동네·내용만 볼 수 있고, 14일이 지나면 닫혀요.</li>\n  <li>실제로 거래한 업체는 <b>내 업체 수첩</b>에 저장해 두세요.</li>\n</ul>\n\n<h2 id=\"move\">6. 입주 · 이사</h2>\n<ul>\n  <li>이사 날짜를 넣으면 할 일(전기·가스·수도·인터넷)이 차례로 나와요. 이사 견적도 업체에 한 곳씩 문의할 수 있어요.</li>\n  <li>계량기 사진은 업체 링크에 나오지 않아요.</li>\n</ul>\n\n<h2 id=\"site\">7. 신축 현장</h2>\n<ul>\n  <li>분양속지 사진을 찍어 두고 호수표·남은 세대·분양 조건·수수료를 정리해요.</li>\n  <li>AI를 연결하면 속지 사진을 읽어 호수표를 자동으로 채워 줘요. (꼭 눈으로 한 번 확인하세요)</li>\n</ul>\n\n<h2 id=\"ai\">8. AI 연결 (무료)</h2>\n<ul>\n  <li><a href=\"https://aistudio.google.com/app/apikey\" target=\"_blank\" rel=\"noopener\">aistudio.google.com/app/apikey</a> 에 구글 계정으로 로그인 → 파란 <b>Create API key</b> → 나온 긴 글자(AIza 또는 AQ.로 시작) 복사 → [AI 연결]에 붙여 넣기 → [저장] → [연결 확인].</li>\n  <li><b>안심하세요</b>: 이 키를 붙여도 이미 쓰고 계신 다른 프로그램은 그대로 잘 돼요. 같은 키를 여러 곳에 쓰면 하루 무료 사용량을 나눠 쓰니, 많이 쓰시면 프로그램마다 따로 만드세요.</li>\n  <li>무료 등급에서는 보낸 사진·글을 구글이 서비스 개선에 쓸 수 있어요. <b>수리 부위·분양속지 사진만</b> 보내고, 손님 얼굴·신분증·계약서는 찍지 마세요.</li>\n  <li>\"붐벼요\"가 뜨면 1~2분 뒤 다시 누르세요.</li>\n</ul>\n\n<h2 id=\"print\">9. 출력 센터 (홍보장 · 손님 안내문)</h2>\n<ul>\n  <li><b>📢 A4 홍보장</b>: [바로 만들기]를 누르면 <b>기본 샘플</b>(급매·반전세·월세·매매·빌라 전세·신축빌라 월세)이 나와요. 누르면 큰 글씨(제목 66 · 본문 60 · 가격 80)가 그대로 들어가요. 본문 첫 줄 박스(방3 화1)는 본문 글씨 크기에 맞춰 커져요.</li>\n  <li><b>자주 쓰는 말</b>(즉시 입주 가능 · LH전세 가능 · 역세권 도보 5분 · 올수리 …)을 누르면 본문에 한 줄씩 들어가요.</li>\n  <li><b>📄 손님 안내문</b>: 매물 상세 → [📄 손님 안내문] → 동네만 / 번지까지 고르고 사진 4장까지 → 미리보기 → 인쇄.</li>\n  <li><b>인쇄</b>: 미리보기의 <b>[🖨 인쇄]</b>. 핸드폰에서는 사무실 <b>와이파이 프린터</b>를 고르거나 <b>PDF로 저장</b>해서 카톡으로 보내요. PC에서는 A4로 바로.</li>\n  <li><b>💾 저장</b>하면 핸드폰에서 만들고 PC에서 열어 뽑을 수도 있어요. 사진은 앨범·PC의 <b>원본</b>을 고르면 선명해요.</li>\n</ul>\n\n<h2 id=\"cal\">10. 달력 · 다이어리 · 가계부</h2>\n<ul>\n  <li>벽걸이 달력처럼 <b>음력 · 24절기 · 공휴일(쉬는 이유) · 손 없는 날 · 물때</b>가 나와요. 넘기면 쫙 찢기고, 지난달로 가면 탁 붙어요.</li>\n  <li>날짜를 누르고 <b>매직 동그라미 · 별표 · 깨알 메모 · 포스트잇</b>을 적어요. 큰 달 숫자 옆에는 이달 포스트잇을 붙여요.</li>\n  <li><b>다이어리</b>: 일정(시각·장소·색) · 할 일 · 한 줄 일기.</li>\n  <li><b>가계부</b>: 수입·지출 · 남은 돈(실제 금액으로 한 번 맞추면 그날부터 이어서 계산) · 주 단위 지출 · 이번 달 예상.</li>\n  <li><b>택배</b>: 받은 물건을 적으면 같은 물건이 며칠마다 필요한지, 다음엔 언제쯤 떨어지는지 알려 줘요. 금액을 적으면 가계부에도 들어가요.</li>\n  <li>모두 내 계정에 저장돼서 핸드폰·PC 어디서나 같이 보여요.</li>\n</ul>\n\n<h2 id=\"faq\">11. 자주 묻는 것</h2>\n<ul>\n  <li><b>다른 핸드폰에서도 되나요?</b> 같은 이메일로 로그인하면 같은 자료가 보여요.</li>\n  <li><b>비밀번호를 잊었어요</b>: 로그인 화면의 [비밀번호를 잊었어요] → 메일의 링크로 새로 만들기.</li>\n  <li><b>매물장을 늘리고 싶어요</b>: 매물장 늘리는 방법은 홈페이지에서 보세요.</li>\n</ul>\n";
 function showHelp(fromHist, anchor){
   if (!fromHist) nav("help");
   window.scrollTo(0, 0);
@@ -1334,6 +1347,7 @@ function route(st){
   else if (st.view === "help") showHelp(true);
   else if (st.view === "office") showOffice(true);
   else if (st.view === "flyer" || st.view === "flyerEdit") showFlyerHome(true);
+  else if (st.view === "cal") showCal(true);
   else if (st.view === "rhome") showRepairHome(true);
   else if (st.view === "repair") showRepair(st.id, true);
   else if (st.view === "mhome") showMoveHome(true);
@@ -4716,8 +4730,15 @@ function aiSettingsForm(after){
     st = st || {};
     box.firstChild.innerHTML = '<div style="display:flex;align-items:center"><div class="nm" style="flex:1">🤖 AI 연결</div><button class="mini" id="asX">닫기</button></div>' +
       '<div class="sect" style="margin-top:12px">1. AI (Gemini 무료 키) ' + (st.gemini ? '<span class="badge b-on">연결됨</span>' : '<span class="badge b-off">안 됨</span>') + '</div>' +
-      '<div class="hint" style="margin-top:0">구글 계정으로 <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com/app/apikey</a> → <b>API 키 만들기</b> → 복사해서 아래에. 카드 등록 없이 무료예요.<br>' +
-        '무료 등급에서는 보낸 사진·글을 구글이 서비스 개선에 쓸 수 있어요. <b>수리 부위·분양속지 사진만</b> 보내고, 손님 얼굴·신분증·계약서는 찍지 마세요.</div>' +
+      '<div class="howkey"><b>키 만드는 법 (5분 · 카드 등록 없이 무료)</b><ol>' +
+        '<li>아래 <b>[🔑 키 만들러 가기]</b>를 눌러 구글 계정으로 로그인해요</li>' +
+        '<li>파란 <b>Create API key</b>(API 키 만들기)를 눌러요 — 프로젝트를 물으면 아무거나 고르거나 새로 만들어요</li>' +
+        '<li>나온 긴 글자(<b>AIza</b> 또는 <b>AQ.</b>로 시작)를 <b>복사</b>해요</li>' +
+        '<li>아래 칸에 붙여 넣고 <b>💾 저장</b> → <b>연결 확인</b></li></ol>' +
+        '<a class="btn ghost" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="display:block;text-align:center;margin:6px 0 8px">🔑 키 만들러 가기</a>' +
+        '<div class="safe">✅ <b>안심하세요.</b> 이 키를 여기 붙여도 <b>이미 쓰고 계신 다른 프로그램은 그대로 잘 돼요.</b> 키 하나를 여러 곳에 써도 되고, 새로 만들어도 예전 키는 그대로 살아 있어요. ' +
+        '다만 같은 키를 여러 곳에 쓰면 하루 무료 사용량을 나눠 써요. 많이 쓰시면 프로그램마다 따로 만드세요.</div></div>' +
+      '<div class="hint">무료 등급에서는 보낸 사진·글을 구글이 서비스 개선에 쓸 수 있어요. <b>수리 부위·분양속지 사진만</b> 보내고, 손님 얼굴·신분증·계약서는 찍지 마세요.</div>' +
       '<label>Gemini API 키</label><input id="asG" type="password" autocomplete="off" placeholder="' + esc(st.geminiKey || "AIza…") + '">' +
       (st.model ? '<div class="hint">쓰는 모델: ' + esc(st.model) + '</div>' : '') +
       '<div class="two" style="margin-top:8px"><button class="btn" id="asGS" style="margin:0">💾 저장</button><button class="btn ghost" id="asGT" style="margin:0"' + (st.gemini ? '' : ' disabled') + '>연결 확인</button></div>' +
