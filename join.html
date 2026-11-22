@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>발품 손님 초대</title>
+<meta name="robots" content="noindex">
+<meta property="og:title" content="발품 — 부동산에서 초대했어요">
+<meta property="og:description" content="매물 추천 · 내 집 최저가 · 수리·이사 상담을 핸드폰으로 편하게">
+<meta property="og:image" content="app/icons/foot.png">
+<link rel="icon" href="app/icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;800&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1E2A78;--orange:#F97316;--ink:#0F172A;--muted:#64748B;--bg:#F3F5FA;--line:#E2E8F0}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--ink);word-break:keep-all;line-height:1.6}
+  .w{max-width:480px;margin:0 auto;padding:28px 16px 40px}
+  .foot{width:84px;height:84px;border-radius:24px;display:block;margin:0 auto 10px;box-shadow:0 8px 22px rgba(0,0,0,.15)}
+  h1{text-align:center;font-size:26px;margin:0}
+  h1 span{font-family:'Nanum Pen Script',cursive;font-weight:400;color:var(--orange);font-size:34px}
+  .who{background:var(--navy);color:#fff;border-radius:20px;padding:18px;margin:18px 0 12px;text-align:center}
+  .who small{opacity:.8;font-size:13px}.who b{display:block;font-size:22px;margin:2px 0}.who .t{opacity:.9;font-size:14px}
+  .code{background:#fff;border:2px dashed #94A3B8;border-radius:16px;text-align:center;padding:10px;margin:0 0 14px}
+  .code small{color:var(--muted)}.code b{display:block;font-size:34px;letter-spacing:.25em;color:var(--navy)}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;font-weight:800;font-size:17px;border-radius:14px;height:54px;margin:8px 0;border:0}
+  .or{background:var(--orange);color:#fff}.nv{background:var(--navy);color:#fff}.wh{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-top:12px;font-size:14.5px}
+  .card b{color:var(--ink)} ol{padding-left:20px;margin:6px 0} li{margin:3px 0}
+  .hint{color:var(--muted);font-size:13px}
+  .gift{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;text-align:center;font-size:13px}
+  .gift div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 4px}.gift i{font-style:normal;font-size:22px;display:block}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+</style>
+</head>
+<body><div class="w">
+  <img class="foot" src="app/icons/foot.png" alt="">
+  <h1>발품 <span>손님</span></h1>
+  <div class="who" id="who"><small>초대한 부동산</small><b id="ofc">불러오는 중…</b><div class="t" id="ofcT"></div></div>
+  <div class="code"><small>초대 코드</small><b id="code">------</b></div>
+
+  <a class="btn or" id="apk" href="balpum-tour.apk" download>📱 안드로이드 앱 받기</a>
+  <a class="btn nv" id="web" href="app/">🌐 이 화면에서 바로 쓰기 (아이폰도 OK)</a>
+
+  <div class="gift">
+    <div><i>🏠</i>골라 주는<br>매물</div><div><i>📊</i>내 집<br>최저가</div><div><i>🔧</i>수리·이사<br>상담</div>
+  </div>
+
+  <div class="card"><b>📱 안드로이드</b>
+    <ol><li>[안드로이드 앱 받기] → 받은 파일 누르기 → 설치 (‘출처를 알 수 없는 앱’ 허용)</li>
+      <li>앱을 열고 <b>[🏠 초대받은 손님이에요]</b> → <b>[초대 코드로 처음 시작하기]</b></li>
+      <li>위의 초대 코드, 이름, 핸드폰 번호, 숫자 6자리를 적으면 끝</li></ol>
+  </div>
+  <div class="card"><b>🍎 아이폰</b>
+    <ol><li>[이 화면에서 바로 쓰기]를 누르면 코드가 들어간 채로 열려요</li>
+      <li>이름 · 핸드폰 · 숫자 6자리를 적고 시작</li>
+      <li>아래 공유 단추(□↑) → <b>‘홈 화면에 추가’</b>하면 앱처럼 써요</li></ol>
+  </div>
+  <div class="hint" style="margin-top:12px">손님은 무료예요. 이름과 전화번호는 초대한 부동산이 상담 연락에만 써요. <a href="privacy.html">개인정보 처리방침</a></div>
+  <footer>발품투어 · 상상을 현실로 · Made by 정동철</footer>
+</div>
+<script src="config.js"></script>
+<script>
+(function(){
+  var q = new URLSearchParams(location.search), c = String(q.get("c") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6), v = q.get("v") || "";
+  v = /^(qr|sms|kakao)$/.test(v) ? v : "";
+  document.getElementById("code").textContent = c || "------";
+  document.getElementById("web").href = "app/?join=" + encodeURIComponent(c) + (v ? "&v=" + v : "");
+  var ofc = document.getElementById("ofc"), t = document.getElementById("ofcT");
+  if (!c) { ofc.textContent = "초대 코드가 없어요"; t.textContent = "부동산에서 받은 링크를 다시 열어 주세요."; return; }
+  var C = window.BALPUM_CONFIG || {};
+  fetch(String(C.SUPABASE_URL).replace(/\/+$/, "") + "/rest/v1/rpc/invite_info", { method: "POST",
+    headers: { "apikey": C.SUPABASE_KEY, "Authorization": "Bearer " + C.SUPABASE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ c: c }) })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(r){ r = Array.isArray(r) ? r[0] : r;
+      if (!r || !r.office) { ofc.textContent = "초대 코드를 찾을 수 없어요"; t.textContent = "부동산에 새 초대 링크를 부탁해 주세요."; return; }
+      ofc.textContent = r.office + "이(가) 초대했어요"; t.textContent = [r.ceo ? "대표 " + r.ceo : "", r.tel || "", r.addr || ""].filter(Boolean).join(" · "); })
+    .catch(function(){ ofc.textContent = "부동산에서 초대했어요"; t.textContent = "(인터넷 연결을 확인해 주세요)"; });
+})();
+</script>
+</body>
+</html>

@@ -4,8 +4,8 @@
    ===================================================================== */
 (function () {
   "use strict";
-  var FOOT = '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="15" rx="5" ry="6.5" fill="#F97316"/><circle cx="6.5" cy="6.5" r="1.8" fill="#F97316"/>' +
-    '<circle cx="10.5" cy="4.5" r="1.8" fill="#F97316"/><circle cx="15" cy="5" r="1.8" fill="#F97316"/><circle cx="18.5" cy="8" r="1.6" fill="#F97316"/><circle cx="13.5" cy="13" r="1.2" fill="#1E2A78"/></svg>';
+  // 발 모양은 핸드폰 바탕화면 아이콘과 같은 그림 하나로 (v1.3)
+  var FOOT = '<img src="icons/foot.png" alt="" style="width:100%;height:100%;display:block;border-radius:inherit">';
   window.BP_FOOT = FOOT;
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 
@@ -14,7 +14,7 @@
   function splash() {
     var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     var css = '<style>#bpSp{position:fixed;inset:0;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 14vh) 26px calc(env(safe-area-inset-bottom,0px) + 40px);font-family:"Noto Sans KR",sans-serif;transition:opacity .45s;cursor:pointer}' +
-      '#bpSp .ft{width:88px;height:88px;animation:spIn .6s ease-out both}#bpSp .ft svg{width:100%;height:100%}' +
+      '#bpSp .ft{width:88px;height:88px;animation:spIn .6s ease-out both}#bpSp .ft{border-radius:26px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.12)}#bpSp .ft img{width:100%;height:100%}' +
       '#bpSp .nm{font-size:30px;font-weight:800;color:#1E2A78;margin-top:10px;text-align:center;animation:spIn .6s .1s ease-out both}#bpSp .nm span{font-family:"Nanum Pen Script",cursive;font-weight:400;color:#F97316;font-size:38px}' +
       '#bpSp .ln{display:flex;flex-direction:column;gap:12px;width:100%;max-width:420px}' +
       '#bpSp .l{font-family:"Nanum Pen Script",cursive;font-size:clamp(21px,6.2vw,30px);line-height:1.15;color:#1E2A78;word-break:keep-all;clip-path:inset(0 100% 0 0);animation:spWrite .75s steps(22) forwards,spBlow .8s ease-in forwards}' +

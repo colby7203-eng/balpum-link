@@ -679,6 +679,46 @@
   };
 
   /* ---------------- 화면에서 부르는 입구 ---------------- */
+  /* ======================= 손님 방 (v1.3) ======================= */
+  function rpc(name, args) { return rest("POST", "rpc/" + name, args || {}); }
+  function custEmail(phone) { return "c" + String(phone || "").replace(/\D/g, "") + "@customer.balpum.kr"; }
+  function newCode() { var a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 6; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
+  var Room = {
+    custEmail: custEmail,
+    info: function (code) {                    // 로그인 전에도: 초대한 사무소 이름·전화
+      return fetchJson(BASE + "/rest/v1/rpc/invite_info", { method: "POST", headers: { "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json" }, body: JSON.stringify({ c: String(code || "") }) })
+        .then(function (r) { return r.ok ? r.body : null; });
+    },
+    join: function (code, name, phone, pin, purpose, via) {
+      var em = custEmail(phone);
+      return Auth.signUp(em, pin, { role: "customer", office_name: name, mobile: phone, member_type: "손님" }).then(function (r) {
+        if (r.needConfirm) throw err("서버에서 '가입 확인 메일'이 켜져 있어 손님이 들어올 수 없어요. 사무소에 알려 주세요.");
+      }, function (e) {
+        if (/이미 가입/.test(e.message)) return Auth.signIn(em, pin).catch(function () { throw err("이 전화번호는 이미 가입돼 있어요. 숫자 비밀번호 6자리를 확인해 주세요."); });
+        throw e;
+      }).then(function () { ACCOUNT = null; return rpc("join_invite", { c: code, nm: name, ph: phone, purpose: purpose || "", via: via || "" }); });
+    },
+    login: function (phone, pin) {
+      return Auth.signIn(custEmail(phone), pin).then(function () { ACCOUNT = null; return true; }, function (e) {
+        throw err(/맞지 않아요/.test(e.message) ? "전화번호나 숫자 비밀번호가 맞지 않아요." : e.message); });
+    },
+    myAgent: function () { return rpc("my_agent"); },
+    links: function () { return rest("GET", "links?select=*&order=created_at.desc"); },
+    msgs: function (agent, customer, after) {
+      return rest("GET", "msgs?select=*&agent=eq." + enc(agent) + "&customer=eq." + enc(customer) + (after ? "&id=gt." + enc(after) : "") + "&order=id.asc");
+    },
+    recent: function () { var u = Auth.user(); return rest("GET", "msgs?select=id,customer,from_agent,kind,body,created_at&agent=eq." + enc(u ? u.id : "") + "&order=id.desc&limit=300"); },
+    send: function (agent, customer, fromAgent, kind, body) {
+      return rest("POST", "msgs", { agent: agent, customer: customer, from_agent: !!fromAgent, kind: kind || "text", body: body || {} }, "return=minimal");
+    },
+    seen: function (customer) { return rpc("mark_seen", { cust: customer }); },
+    invite: function (memo) {
+      var u = Auth.user(); if (!u) return Promise.reject(err("로그인이 필요해요."));
+      var code = newCode();
+      return rest("POST", "invites", { code: code, agent: u.id, memo: str(memo).slice(0, 300) }, "return=minimal").then(function () { return code; });
+    }
+  };
+
   function call(fn) {
     var args = Array.prototype.slice.call(arguments, 1);
     var f = API[fn];
@@ -687,6 +727,6 @@
     try { return Promise.resolve(f.apply(null, args)); } catch (e) { return Promise.reject(e); }
   }
 
-  window.BALPUM = { call: call, Auth: Auth, Office: Office, API: API, DB: DB, nowStr: nowStr, config: CFG,
+  window.BALPUM = { call: call, Auth: Auth, Office: Office, API: API, DB: DB, Room: Room, nowStr: nowStr, config: CFG,
                     _setBase: function (b, k) { BASE = b; KEY = k || KEY; } };
 })();

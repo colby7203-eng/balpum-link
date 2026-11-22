@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>발품투어 매물장 — 공인중개사 답사순서표 & 임장관리</title>
-<meta name="description" content="발품투어 매물장 — 공인중개사가 직접 만든 매물장 앱. 매물장 · 답사 순서표 · 임장 사진 · 고객관리 · 수리 견적 · 홍보장 인쇄 · 음력 달력·다이어리·가계부를 핸드폰과 PC에서 함께.">
+<meta name="description" content="발품투어 매물장 — 공인중개사가 직접 만든 매물장 앱. 매물장 · 답사 순서표 · 임장 사진 · 고객관리 · 수리 견적 · 홍보장 인쇄 · 손님 방 · 음력 달력·다이어리·가계부를 핸드폰과 PC에서 함께.">
 <meta name="keywords" content="발품투어, 발품투어 매물장, 공인중개사 매물장, 매물장 앱, 부동산 매물 관리, 답사순서표, 임장, 홍보장, 공인중개사 앱">
 <link rel="canonical" href="https://colby7203-eng.github.io/balpum-link/">
 <meta property="og:title" content="발품투어 매물장">
@@ -23,6 +23,7 @@
   .t{font-size:48px;font-weight:800;letter-spacing:-1.5px;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;line-height:1.1}
   .t .tour{font-family:'Nanum Pen Script',cursive;font-weight:400;font-size:62px;color:#FDBA74}
   .t .mj{font-size:15px;background:var(--orange);border-radius:999px;padding:4px 13px;margin-left:10px;align-self:center;letter-spacing:0}
+  .foot{width:84px;height:84px;border-radius:24px;display:block;margin-bottom:14px;box-shadow:0 8px 22px rgba(0,0,0,.3)}
   .s{color:#C7D2FE;font-weight:700;margin-top:10px;font-size:18px}
   .q{margin-top:12px;font-size:18px}
   .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
@@ -68,6 +69,7 @@
 
 <div class="hero"><div class="in grid">
   <div>
+    <img class="foot" src="app/icons/foot.png" alt="발품투어 발 모양">
     <div class="t">발품<span class="tour">투어</span><span class="mj">매물장</span></div>
     <div class="s">공인중개사 답사순서표 &amp; 臨場 임장관리</div>
     <div class="q">발품을 기록으로 바꾸고, 기록을 노하우로 바꾸는 것</div>
@@ -90,7 +92,8 @@
     <div class="card"><div class="ic">🔧</div><h3>수리 견적</h3><p>수리할 곳 사진 → 대략 견적 → 근처 업체에 한 곳씩 사진 링크 문자. 내 업체 수첩.</p></div>
     <div class="card"><div class="ic">🏠</div><h3>입주·이사 · 신축 현장</h3><p>이사 날짜별 할 일, 이사 견적 문의, 분양속지 사진으로 호수표·남은 세대 정리.</p></div>
     <div class="card"><div class="ic">🖨</div><h3>출력 센터</h3><p>큰 글씨 A4 홍보장 기본 샘플(급매·전세·월세…)과 손님 안내문. 핸드폰에서 와이파이 프린터·PDF로, PC에서 A4로 바로.</p></div>
-    <div class="card"><div class="ic">📅</div><h3>달력 · 다이어리 · 가계부</h3><p>음력·절기·공휴일·손 없는 날·물때가 나오는 벽걸이 달력. 매직 동그라미·포스트잇, 일정, 쓴 돈·남은 돈, 택배 주기까지.</p></div>
+    <div class="card"><div class="ic">📅</div><h3>달력 · 약속 다이어리 · 가계부</h3><p>음력·절기·공휴일·손 없는 날·물때가 나오는 벽걸이 달력. 매직 동그라미·포스트잇, 물때 옆 단추로 약속 다이어리 · 가계부 · 택배.</p></div>
+    <div class="card"><div class="ic">💬</div><h3>손님 방 (손님 앱)</h3><p>문자·카톡·QR로 손님 초대 → 손님이 이름·전화번호만 적으면 고객관리에 저절로. 상담, 매물 보내기, 내 집 최저가 답장, 일반 의뢰 · 몰래 빨리 팔아 주세요. 손님은 무료.</p></div>
   </div>
 </div></section>
 
@@ -111,6 +114,7 @@
       <li><a href="balpum-tour.apk" download><b>앱 받기</b></a>를 누릅니다.</li>
       <li>받은 파일을 누르고 <b>'출처를 알 수 없는 앱' 허용</b> → 설치.</li>
       <li>앱을 열고 <b>가입하기</b> (공인중개사 · 컨설팅·분양 모두 가입 가능).</li>
+      <li>부동산에서 초대받은 <b>손님</b>은 [🏠 초대받은 손님이에요] → 초대 코드.</li>
     </ol>
     <a class="btn or" href="balpum-tour.apk" download style="margin-top:6px">📱 앱 받기</a>
     <div class="hint" style="margin-top:8px">아이폰용은 준비 중입니다.</div>
@@ -153,7 +157,7 @@
   <div class="by">— 만든이 정동철 · 상상을 현실로</div>
 </div></section>
 
-<footer>© 상상을 현실로 · 발품투어 매물장 · Made by 정동철</footer>
+<footer>© 상상을 현실로 · 발품투어 매물장 · Made by 정동철 · <a href="privacy.html">개인정보 처리방침</a></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>

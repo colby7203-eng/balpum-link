@@ -1,5 +1,5 @@
 /* =====================================================================
-   발품투어 매물장 — 📅 달력 · 다이어리 · 가계부 · 택배
+   발품투어 매물장 — 📅 달력 · 약속 다이어리 · 가계부 · 택배 (v1.3: 단추로 따로 여는 시트)
    벽걸이 달력(음력·절기·공휴일·손 없는 날·물때) + 상상을 현실로의 가계부 계산
    (남은 돈 기준 맞추기 · 주 단위 지출 예상 · 택배 며칠마다)
    자료는 내 계정 서버에 저장: calday(하루) · calmon(이달 포스트잇·예산) · set/cal(설정)
@@ -184,6 +184,12 @@
     '#cal .panel{margin:10px 10px 0;border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px}' +
     '#cal .cttl{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:18px}#cal .cwhy{font-size:12.5px;color:var(--muted);line-height:1.55}#cal .cwhy b{color:var(--ink)}' +
     '#cal .cchips{display:flex;flex-wrap:wrap;gap:6px}#cal .chip2{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid currentColor}' +
+    '#cal .ctools .tb{font:700 13px "Noto Sans KR",sans-serif;border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:7px 12px;cursor:pointer}#cal .ctools .tb.d{border-color:var(--lav)}#cal .ctools .tb.b{border-color:var(--pink)}#cal .ctools .tb.p{border-color:#b08a5a}' +
+    '#cal .csh{position:fixed;inset:0;z-index:8000;background:rgba(10,12,20,.42);display:flex;align-items:flex-end;justify-content:center}#cal .csh[hidden]{display:none}' +
+    '#cal .cshb{background:var(--paper);width:100%;max-width:640px;max-height:90vh;overflow:auto;border-radius:20px 20px 0 0;padding:10px 14px calc(env(safe-area-inset-bottom,0px) + 18px);box-sizing:border-box;display:grid;gap:8px;animation:cshUp .22s ease-out}@keyframes cshUp{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}' +
+    '#cal .cshh{position:sticky;top:-10px;background:var(--paper);display:flex;align-items:center;gap:6px;padding:6px 0 8px;border-bottom:1px solid var(--line);z-index:2}#cal .cshh h3{flex:1;margin:0;font:800 17px "Noto Sans KR",sans-serif}#cal .cshh small{display:block;font-size:12px;font-weight:500;color:var(--muted)}' +
+    '#cal .cshh button{border:1px solid var(--line);background:#fff;border-radius:10px;min-width:38px;height:36px;font:700 15px "Noto Sans KR",sans-serif;cursor:pointer;color:var(--ink)}#cal .cshh .x{background:var(--ink);color:#fff;border-color:var(--ink);padding:0 12px}' +
+    '#cal .cshb .cbox{margin:4px 0 0}' +
     '#cal .tabs2{display:flex;gap:4px;background:var(--sel);border-radius:12px;padding:3px}#cal .tabs2 button{flex:1;border:0;background:transparent;border-radius:10px;padding:8px 2px;font:600 13px "Noto Sans KR",sans-serif;color:var(--muted);cursor:pointer}' +
     '#cal .tabs2 button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}' +
     '#cal .crow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}#cal .sub2{font-size:12px;font-weight:700;color:var(--muted)}' +
@@ -229,10 +235,12 @@
   var COLV = { red: "var(--red)", blue: "var(--blue)", green: "var(--green)", black: "var(--ink)" };
 
   /* ---------- 화면 ---------- */
+  window.addEventListener("popstate", function () { if (V.sheet || document.body.style.overflow === "hidden") { V.sheet = ""; document.body.style.overflow = ""; } });
   window.showCal = function (fromHist) {
+    V.sheet = ""; document.body.style.overflow = "";
     if (!fromHist && typeof nav === "function") nav("cal");
     window.scrollTo(0, 0);
-    $("app").innerHTML = (document.getElementById("calCss") ? "" : CSS) + '<div class="top"><button class="back" id="calBk">← 처음</button><h2>달력 · 다이어리 · 가계부</h2></div><div id="cal"><div class="loading">달력 펴는 중…</div></div>';
+    $("app").innerHTML = (document.getElementById("calCss") ? "" : CSS) + '<div class="top"><button class="back" id="calBk">← 처음</button><h2>달력 · 약속 다이어리 · 가계부</h2></div><div id="cal"><div class="loading">달력 펴는 중…</div></div>';
     $("calBk").onclick = function () { showHome(); };
     load().then(shell, function (er) { $("cal").innerHTML = '<div class="hint">' + e((er && er.message) || "불러오지 못했어요") + '</div>'; shell(); });
   };
@@ -241,12 +249,20 @@
     $("cal").innerHTML = '<div class="hook"></div><div class="paper" id="calPaper"><div class="rings">' + new Array(13).join("<i></i>") + '</div>' +
       '<div id="sheet"><header class="cmhead"><div class="mnum" id="cMn"></div><div class="mmeta"><div class="eng" id="cEn"></div><div class="yr"><span id="cYr"></span><small id="cGz"></small></div><div class="animal" id="cAn"></div><div class="lr" id="cLr"></div></div><div class="stick" id="cStick"></div></header>' +
       '<div class="nav"><button type="button" id="cPrev"></button><button type="button" class="today" id="cToday">오늘</button><button type="button" id="cNext"></button></div>' +
-      '<div class="ctools"><button type="button" class="tg sea" id="cTide">물때 보기</button><span id="cSea"></span></div>' +
+      '<div class="ctools"><button type="button" class="tg sea" id="cTide">물때 보기</button><span id="cSea"></span>' +
+      '<button type="button" class="tb d" data-sh="diary">📒 약속 다이어리</button><button type="button" class="tb b" data-sh="book">💰 가계부</button><button type="button" class="tb p" data-sh="parcel">📦 택배</button></div>' +
       '<div class="grid" id="cGrid"></div>' +
       '<div class="legend"><span><b style="color:var(--red)">빨강</b> 일요일·공휴일</span><span><b style="color:var(--green)">초록</b> 24절기</span><span><span class="sonn">손</span> 손 없는 날</span><span>○ 보름 · ● 초하루</span><span>까만 동그라미 = 오늘</span></div>' +
       '<section class="panel" id="cPanel"></section><div class="sum" id="cSum"></div></div>' +
       '<footer class="ad"><div class="by">발품투어 매물장이 드리는 달력</div><div class="shop">' + e(o.name || "발품투어 매물장") + '</div>' + (o.tel || o.mobile ? '<div class="tel">' + e(o.tel || o.mobile) + '</div>' : '') + '</footer></div>' +
-      '<div class="saved" id="calSaved">자료는 내 계정에 저장돼요 · 핸드폰·PC 같이 보여요</div>';
+      '<div class="saved" id="calSaved">자료는 내 계정에 저장돼요 · 핸드폰·PC 같이 보여요</div>' +
+      '<div class="csh" id="cSh" hidden><div class="cshb" role="dialog" aria-modal="true" aria-labelledby="cShT"><div class="cshh"><button type="button" id="cShP" aria-label="전날">‹</button><h3 id="cShT"></h3><button type="button" id="cShN" aria-label="다음 날">›</button><button type="button" class="x" id="cShX">닫기</button></div><div id="cSB"></div></div></div>';
+    V.sheet = "";
+    Array.prototype.forEach.call(document.querySelectorAll("#cal [data-sh]"), function (b) { b.onclick = function () { openSheet(b.getAttribute("data-sh")); }; });
+    $("cShX").onclick = closeSheet;
+    $("cSh").onclick = function (ev) { if (ev.target === this) closeSheet(); };
+    $("cShP").onclick = function () { stepDay(-1); };
+    $("cShN").onclick = function () { stepDay(1); };
     $("cPrev").onclick = function () { go(-1); };
     $("cNext").onclick = function () { go(1); };
     $("cToday").onclick = function () { var t = clampYM({ y: now.getFullYear(), m: now.getMonth() }), d = (t.y * 12 + t.m) - (V.cur.y * 12 + V.cur.m); if (!d) { V.sel = TODAY; render(); return; } go(d, true); };
@@ -343,12 +359,35 @@
     return h;
   }
   function panel() {
-    var tabs = [["mark", "✏️ 메모"], ["diary", "📒 다이어리"], ["book", "💰 가계부"], ["parcel", "📦 택배"]];
-    var h = info() + '<div class="tabs2">' + tabs.map(function (t) { return '<button type="button" data-tab="' + t[0] + '" aria-pressed="' + (V.tab === t[0]) + '">' + t[1] + '</button>'; }).join("") + '</div>';
-    h += V.tab === "diary" ? diaryHTML() : V.tab === "book" ? bookHTML() : V.tab === "parcel" ? parcelHTML() : markHTML();
-    $("cPanel").innerHTML = h;
-    Array.prototype.forEach.call(document.querySelectorAll("#cPanel [data-tab]"), function (b) { b.onclick = function () { V.tab = b.getAttribute("data-tab"); panel(); }; });
-    (V.tab === "diary" ? diaryBind : V.tab === "book" ? bookBind : V.tab === "parcel" ? parcelBind : markBind)();
+    $("cPanel").innerHTML = info() + '<div class="sub2" style="margin-top:2px">✏️ 이날 표시 · 메모</div>' + markHTML() + dayPeek();
+    markBind();
+    Array.prototype.forEach.call(document.querySelectorAll("#cPanel [data-sh]"), function (b) { b.onclick = function () { openSheet(b.getAttribute("data-sh")); }; });
+    if (V.sheet) sheet();
+  }
+  // 이날 적힌 것 한 줄 요약 (누르면 그 시트가 열림)
+  function dayPeek() {
+    var r = D(V.sel), out = 0, inc = 0; r.book.forEach(function (x) { if (x.t === "in") inc += x.a; else out += x.a; });
+    var a = [];
+    if (r.ev.length || r.todo.length || r.line) a.push('<button type="button" class="eb" data-sh="diary">📒 약속 ' + r.ev.length + (r.todo.length ? " · 할 일 " + r.todo.length : "") + '</button>');
+    if (out || inc) a.push('<button type="button" class="eb" data-sh="book">💰 ' + (out ? "−" + won(out) : "") + (inc ? " +" + won(inc) : "") + '</button>');
+    if (r.parcel.length) a.push('<button type="button" class="eb" data-sh="parcel">📦 택배 ' + r.parcel.length + '</button>');
+    return a.length ? '<div class="crow">' + a.join("") + '</div>' : '';
+  }
+  /* ---------- 시트: 약속 다이어리 · 가계부 · 택배 (물때 옆 단추로 따로 열기) ---------- */
+  var SHT = { diary: "📒 약속 다이어리", book: "💰 가계부", parcel: "📦 택배" };
+  function openSheet(k) { V.sheet = k; V.balEdit = false; $("cSh").hidden = false; document.body.style.overflow = "hidden"; sheet(); $("cSh").querySelector(".cshb").scrollTop = 0; }
+  function closeSheet() { V.sheet = ""; var s = $("cSh"); if (s) s.hidden = true; document.body.style.overflow = ""; }
+  function stepDay(k) {
+    var n = V.sel + k, d = new Date(n * 864e5); V.sel = n; V.balEdit = false;
+    if (d.getUTCMonth() !== V.cur.m || d.getUTCFullYear() !== V.cur.y) { var t = clampYM({ y: d.getUTCFullYear(), m: d.getUTCMonth() }), j = (t.y * 12 + t.m) - (V.cur.y * 12 + V.cur.m); if (j) { V.cur = t; render(); return; } }
+    grid(); panel();
+  }
+  function sheet() {
+    var k = V.sheet, B = $("cSB"); if (!k || !B) return;
+    var d = new Date(V.sel * 864e5);
+    $("cShT").innerHTML = SHT[k] + '<small>' + (d.getUTCMonth() + 1) + "월 " + d.getUTCDate() + "일 " + WD[d.getUTCDay()] + "요일" + (V.sel === TODAY ? " · 오늘" : "") + '</small>';
+    B.innerHTML = k === "diary" ? diaryHTML() : k === "book" ? bookHTML() + ledgerHTML() : parcelHTML() + parcelBoxHTML();
+    (k === "diary" ? diaryBind : k === "book" ? bookBind : parcelBind)();
   }
   function markHTML() {
     var r = D(V.sel), sw = function (c, l) { return '<button type="button" class="eb" data-c="' + c + '" aria-pressed="' + ((r.circle || "") === c) + '" aria-label="' + l + '">' + (c ? '<span class="sw" style="background:' + COLV[c] + '"></span>' : "없음") + '</button>'; };
@@ -378,7 +417,7 @@
     return h;
   }
   function diaryBind() {
-    var q = function (s) { return document.querySelectorAll("#cPanel " + s); };
+    var q = function (s) { return document.querySelectorAll("#cSB " + s); };
     Array.prototype.forEach.call(q("[data-evd]"), function (b) { b.onchange = function () { var r = D(V.sel); r.ev[+b.getAttribute("data-evd")].d = b.checked; putDay(V.sel, r); panel(); }; });
     Array.prototype.forEach.call(q("[data-evx]"), function (b) { b.onclick = function () { var r = D(V.sel); r.ev.splice(+b.getAttribute("data-evx"), 1); putDay(V.sel, r); grid(); panel(); }; });
     Array.prototype.forEach.call(q("[data-evc]"), function (b) { b.onclick = function () { V.evc = b.getAttribute("data-evc"); Array.prototype.forEach.call(q("[data-evc]"), function (x) { x.setAttribute("aria-pressed", x === b); }); }; });
@@ -413,7 +452,7 @@
     return h;
   }
   function bookBind() {
-    var q = function (s) { return document.querySelectorAll("#cPanel " + s); };
+    var q = function (s) { return document.querySelectorAll("#cSB " + s); };
     Array.prototype.forEach.call(q("[data-bx]"), function (b) { b.onclick = function () { var r = D(V.sel), x = r.book[+b.getAttribute("data-bx")];
       if (x && x.pid) r.parcel = r.parcel.filter(function (p) { return p.id !== x.pid; });
       r.book.splice(+b.getAttribute("data-bx"), 1); putDay(V.sel, r); grid(); panel(); sums(); }; });
@@ -440,7 +479,7 @@
     return h;
   }
   function parcelBind() {
-    Array.prototype.forEach.call(document.querySelectorAll("#cPanel [data-px]"), function (b) { b.onclick = function () { var r = D(V.sel), p = r.parcel[+b.getAttribute("data-px")];
+    Array.prototype.forEach.call(document.querySelectorAll("#cSB [data-px]"), function (b) { b.onclick = function () { var r = D(V.sel), p = r.parcel[+b.getAttribute("data-px")];
       r.parcel.splice(+b.getAttribute("data-px"), 1); if (p) r.book = r.book.filter(function (x) { return x.pid !== p.id; }); putDay(V.sel, r); grid(); panel(); sums(); }; });
     $("cPa").oninput = function () { var n = +String(this.value).replace(/\D/g, ""); this.value = n ? n.toLocaleString("ko-KR") : ""; };
     $("cPA").onclick = function () { var it = $("cPi").value.trim(), a = num($("cPa").value); if (!it) { $("cPi").focus(); say("어떤 물건이 왔는지 적어 주세요."); return; }
@@ -450,7 +489,7 @@
   }
 
   /* ---------- 아래: 이달 가계부 · 주 단위 예상 · 택배 · 손 없는 날 ---------- */
-  function sums() {
+  function ledgerHTML() {
     var y = V.cur.y, m = V.cur.m, first = dn(y, m, 1), days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(), last = first + days - 1;
     var t = sumRange(first, last), cats = {};
     each(function (x, n) { if (x.t === "out" && n >= first && n <= last) cats[x.c] = (cats[x.c] || 0) + x.a; });
@@ -461,7 +500,7 @@
       '<div><span>이달 차액 (수입−지출)</span><b>' + won(t["in"] - t.out) + '</b></div><div><span>💳 남은 돈 (' + dayTitle(endN) + ' 끝)</span><b>' + won(balanceAt(endN)) + '</b></div></div>' +
       (arr.length ? '<div class="bars">' + arr.map(function (a) { var c = OUT_CATS.filter(function (x) { return x[0] === a[0]; })[0] || ["", "✨", "#bdbdbd"];
         return '<div class="brow"><span>' + c[1] + " " + e(a[0]) + '</span><span class="tr"><i style="width:' + Math.max(3, Math.round(a[1] / mx * 100)) + "%;background:" + c[2] + '"></i></span><span>' + won(a[1]) + '</span></div>'; }).join("") + '</div>'
-        : '<div class="cwhy">이번 달 가계부가 아직 없어요. 날짜를 누르고 [💰 가계부]에 적어 보세요.</div>') + '</div>';
+        : '<div class="cwhy">이번 달 가계부가 아직 없어요. 위에서 이날 쓴 돈을 적어 보세요.</div>') + '</div>';
     // 주 단위
     var rows = [], d0 = weekStart(first), no = 1, mxw = 1;
     while (d0 <= last && no < 8) { var A = Math.max(d0, first), B = Math.min(d0 + 6, last), r = sumRange(A, B); rows.push({ no: no++, A: A, B: B, out: r.out, now: A <= TODAY && TODAY <= B, fut: A > TODAY }); mxw = Math.max(mxw, r.out); d0 += 7; }
@@ -473,13 +512,19 @@
         tile("지난달 같은 날까지", F.lmSame != null ? won(F.lmSame) : "–", F.lmSame != null ? (F.soFar >= F.lmSame ? "이번 달이 " + won(F.soFar - F.lmSame) + " 더 씀" : "이번 달이 " + won(F.lmSame - F.soFar) + " 덜 씀") : "지난달 기록이 없어요") +
         tile("지난달 전체", F.lmAll != null ? won(F.lmAll) : "–", F.lmAll != null && F.proj != null ? (F.proj > F.lmAll ? "이대로면 " + won(F.proj - F.lmAll) + " 더 써요" : "이대로면 " + won(F.lmAll - F.proj) + " 덜 써요") : "") + '</div>'; }
     h += rows.map(function (r) { return '<div class="wk' + (r.now ? " now" : "") + '"><span>' + r.no + "주차" + (r.now ? " (이번 주)" : "") + '<br><small style="color:var(--muted)">' + md(r.A) + " ~ " + md(r.B) + '</small></span><span class="tr"><i style="width:' + (r.out ? Math.max(2, Math.round(r.out / mxw * 100)) : 0) + '%"></i></span><b>' + (r.fut ? "–" : won(r.out)) + '</b></div>'; }).join("") + '</div>';
-    // 택배
-    var st = parcelStats();
+    return h;
+  }
+  function parcelBoxHTML() {
+    var st = parcelStats(), m = V.cur.m, h = '';
     h += '<div class="cbox"><h3>📦 택배 · 자주 사는 물건 <small>' + (st.length ? st.reduce(function (s, x) { return s + x.count; }, 0) + "개 받음" : "") + '</small></h3>' +
       (st.length ? '<div style="overflow-x:auto"><table class="ptab"><tr><th>물건</th><th>횟수</th><th>평균</th><th>다음에 필요할 때</th></tr>' + st.slice(0, 12).map(function (x) {
         var nx = x.next != null ? md(x.next) + (x.left < 0 ? ' <b class="late">' + (-x.left) + "일 지남</b>" : x.left <= 3 ? ' <b class="soon">' + (x.left ? x.left + "일 남음" : "오늘쯤") + "</b>" : " (" + x.left + "일 뒤)") : '<span style="color:var(--muted)">두 번 받으면 계산돼요</span>';
         return '<tr><td><b>' + e(x.name) + '</b>' + (x.shop ? "<br><small>" + e(x.shop) + "</small>" : "") + '</td><td>' + x.count + '번</td><td>' + (x.gap ? x.gap + "일마다" : "–") + '</td><td>' + nx + '</td></tr>'; }).join("") + '</table></div>'
-        : '<div class="cwhy">날짜를 누르고 [📦 택배]에 받은 물건을 적어 보세요. 같은 물건이 두 번 이상 오면 평균 며칠마다 필요한지, 다음엔 언제 떨어질지 여기에 나와요.</div>') + '</div>';
+        : '<div class="cwhy">위에 받은 물건을 적어 보세요. 같은 물건이 두 번 이상 오면 평균 며칠마다 필요한지, 다음엔 언제 떨어질지 여기에 나와요.</div>') + '</div>';
+    return h;
+  }
+  function sums() {
+    var y = V.cur.y, m = V.cur.m, first = dn(y, m, 1), days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(), last = first + days - 1, h = '';
     // 손 없는 날
     var mv = [];
     for (var n = first; n <= last; n++) if (sonn(lunar(n))) mv.push(n);
