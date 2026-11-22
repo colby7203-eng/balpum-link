@@ -50,7 +50,29 @@
       vv.addEventListener("resize", function () { setKb(Math.max(0, window.innerHeight - vv.height - vv.offsetTop)); });
     }
     document.addEventListener("focusin", function (ev) { var t = ev.target; if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName)) setTimeout(function () { try { t.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (er) {} }, 350); });
+    // v1.5: 글을 쓰다 칸이 길어져도 자판에 가리지 않게 — 쓸 때마다 칸 아래가 자판 위에 있는지 봐서 올려 줌
+    var fixT = null;
+    function keepUp(t) {
+      if (!t || !t.getBoundingClientRect) return;
+      var kb = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--kb"), 10) || 0;
+      var vv = window.visualViewport, vis = vv ? vv.height + vv.offsetTop : window.innerHeight;
+      var bottom = Math.min(vis, window.innerHeight - kb) - 12, r = t.getBoundingClientRect();
+      if (t.closest && t.closest(".rm-in,.yc-foot")) return;                 // 바닥에 붙은 대화 입력칸은 이미 자판 위
+      if (r.bottom > bottom) window.scrollBy(0, r.bottom - bottom);
+      else if (r.top < 70) window.scrollBy(0, r.top - 70);
+    }
+    document.addEventListener("input", function (ev) { var t = ev.target; if (!t || !/^(INPUT|TEXTAREA)$/.test(t.tagName)) return;
+      if (t.tagName === "TEXTAREA" && t.classList.contains("grow")) { t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+      clearTimeout(fixT); fixT = setTimeout(function () { keepUp(t); }, 30); }, true);
+    window.bpKeepUp = keepUp;
   })();
+  // 모든 화면: 자판이 떠 있으면 그만큼 아래를 비워서 맨 아래 칸도 자판 위로 올라오게 · 맨 위 머리줄은 따라오게 (v1.5)
+  (function () { var st = document.createElement("style"); st.id = "bpKbCss";
+    st.textContent = 'body.kb-open{padding-bottom:calc(var(--kb,0px) + 24px)!important}' +
+      '.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;box-shadow:0 calc(-1 * env(safe-area-inset-top,0px)) 0 0 var(--navy,#1E2A78)}' +
+      '.top.bpy{box-shadow:0 calc(-1 * env(safe-area-inset-top,0px)) 0 0 #FFE27A}' +
+      'textarea.grow{resize:none;overflow:hidden;min-height:44px}';
+    (document.head || document.documentElement).appendChild(st); })();
 
   /* ---------- 0-2. 초대 코드 저절로 붙여 넣기 (홈페이지 초대 페이지에서 복사해 둔 것) ---------- */
   window.bpClipJoin = function () {

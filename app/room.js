@@ -53,7 +53,13 @@
     '.rm-b{max-width:82%;border-radius:16px;padding:9px 12px;font-size:14.5px;line-height:1.5;word-break:break-word;background:#fff;align-self:flex-start;box-shadow:0 1px 2px rgba(0,0,0,.06)}' +
     '.rm-b.me{align-self:flex-end;background:#1E2A78;color:#fff}.rm-b small.t{display:block;font-size:11px;opacity:.6;margin-top:3px}' +
     '.rm-b.card{background:#fff;color:#0F172A;border:1px solid #E2E8F0;width:82%}.rm-b.me.card{background:#EEF2FF;color:#0F172A}' +
-    '.rm-b.sell{background:#FFF7ED;color:#0F172A;border:1.5px solid #EA580C}.rm-b img{width:100%;border-radius:10px;margin-top:6px;display:block}' +
+    '.rm-b.sell{background:#fff;color:#0F172A;border:1.5px solid #CBD5E1}.rm-b.sell.me{background:#EEF2FF}' +
+    '.rm-b.sos{background:#C2410C!important;color:#fff!important;border:0!important;animation:rmSos 1.1s ease-in-out infinite;width:86%}.rm-b.sos .k{color:#FFEDD5!important;font-size:12px}.rm-b.sos .sosw{font-family:"Nanum Brush Script",sans-serif;font-size:34px;line-height:1;-webkit-text-stroke:.6px #fff;display:block;margin-bottom:2px}' +
+    '@keyframes rmSos{0%,100%{box-shadow:0 0 0 0 rgba(234,88,12,.7)}50%{box-shadow:0 0 0 8px rgba(234,88,12,0)}}' +
+    '.rm-sos{background:#C2410C;color:#fff;border-radius:6px;padding:0 6px;font-family:"Nanum Brush Script",sans-serif;font-size:17px;animation:rmBl 1s steps(2,start) infinite}@keyframes rmBl{50%{opacity:.35}}' +
+    '.rm-row.new{border:2px solid #DC2626;background:#FEF2F2}' +
+    '.rm-nb{font-family:"Nanum Brush Script",sans-serif;font-size:20px;background:#DC2626;color:#fff;border-radius:10px;padding:0 9px;line-height:1.25;-webkit-text-stroke:.3px #fff;white-space:nowrap}' +
+    '.rm-trust{display:inline-block;margin-top:4px;background:#FEF3C7;color:#92400E;border:1px solid #F59E0B;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:800}.rm-b img{width:100%;border-radius:10px;margin-top:6px;display:block}' +
     '.rm-b .k{font-size:12px;font-weight:800;color:#9A3412;display:block;margin-bottom:2px}.rm-b .big{font-size:20px;font-weight:800}' +
     '.rm-in{position:sticky;bottom:0;background:#F1F5F9;padding:8px 0;display:flex;gap:8px;align-items:flex-end;z-index:10}' +
     '.rm-in textarea{flex:1;min-width:0;border:1px solid #CBD5E1;border-radius:18px;padding:9px 13px;font:16px "Noto Sans KR",sans-serif;resize:none;max-height:120px}' +
@@ -175,12 +181,12 @@
       var se = secretState(ME.msgs);
       app('<div class="rm-hd bpy">' + (window.BP_LOGO ? BP_LOGO("tour", 40) : "발품") + '<span class="nm">손님 · ' + e(a.name || "") + '님</span></div>' +
         (se && se.over ? '<div class="rm-alert" id="chSe" style="background:#FFEDD5"><span style="font-size:24px">⏰</span><span style="flex:1"><b>몰래 기간이 끝났어요</b><small>일반 의뢰로 바꿀지, 한 번 더 몰래 맡길지 골라 주세요</small></span><b style="color:#C2410C">고르기 ›</b></div>' : '') +
-        '<div class="rm-office"><small>내 부동산</small><b>' + e(a.office || "부동산") + '</b><div class="ad">' + e([a.addr, a.ceo ? "대표 " + a.ceo : ""].filter(Boolean).join(" · ")) + '</div>' +
+        '<div class="rm-office"><small>내 부동산</small><b>' + e(a.office || "부동산") + '</b>' + (a.badge ? '<span class="rm-trust">🏅 동네 부동산들이 믿고 같이 하는 사무소</span>' : '') + '<div class="ad">' + e([a.addr, a.ceo ? "대표 " + a.ceo : ""].filter(Boolean).join(" · ")) + '</div>' +
         '<div class="rm-two"><button class="rm-wb" id="chC">💬 상담하기</button>' + ((a.tel || a.mobile) ? '<a class="rm-wb dk" href="tel:' + e(String(a.tel || a.mobile).replace(/[^\d+]/g, "")) + '">📞 ' + e(a.tel || a.mobile) + '</a>' : '<span></span>') + '</div></div>' +
         (dd !== null ? '<div class="rm-alert" id="chD"><span style="font-size:24px">📅</span><span style="flex:1"><b>' + e(mh.kind || "계약") + ' 만기 ' + (dd >= 0 ? dd + "일 남았어요" : (-dd) + "일 지났어요") + '</b><small>연장할지 이사할지 미리 상담받으세요</small></span><b style="color:#B45309">D' + (dd >= 0 ? "-" + dd : "+" + (-dd)) + '</b></div>' : '') +
         '<div class="rm-tiles">' + [["want", "🔍", "집 구해요"], ["sell", "🏷", "집 내놓기"], ["low", "📊", "최저가 확인"], ["repair", "🔧", "수리 요청"], ["move", "🚚", "이사 준비"], ["chat", "💬", "상담"]].map(function (t) {
           return '<button type="button" class="rm-tile" data-t="' + t[0] + '"><i>' + t[1] + '</i>' + t[2] + '</button>'; }).join("") + '</div>' +
-        '<div class="rm-corners"><button type="button" class="rm-corner bpy" data-t="yc"><span class="gf">🎁</span>' + (window.BP_LOGO ? BP_LOGO("yc", 30) : "직빵 young call") + '<small>샘이랑 영어 수다</small></button>' +
+        '<div class="rm-corners"><button type="button" class="rm-corner bpy" data-t="yc"><span class="gf">🎁</span>' + (window.ycHasNew && ycHasNew() ? '<span style="position:absolute;left:8px;top:6px;background:#DC2626;color:#fff;border-radius:999px;font:800 11px sans-serif;padding:1px 7px">NEW</span>' : '') + (window.BP_LOGO ? BP_LOGO("yc", 30) : "직빵 young call") + '<small>샘이랑 영어 수다</small></button>' +
         '<button type="button" class="rm-corner bpy" data-t="cal"><span class="gf">🎁</span>' + (window.BP_LOGO ? BP_LOGO("cal", 26) : "발품TOUR 달력") + '<small>음력 · 약속 · 가계부</small></button></div>' +
         '<div class="rm-sect"><span>사장님이 골라 준 매물</span>' + (ls.length ? '<a href="#" id="chAll" style="font-size:13px">상담에서 보기</a>' : '') + '</div>' +
         (ls.length ? '<div class="rm-ls">' + ls.map(function (m) { var b = m.body || {}; return '<div class="rm-lc" data-go="chat"><small>' + e([b.dong, b.room, b.deal].filter(Boolean).join(" · ")) + '</small><b>' + e(b.price || "") + '</b><em>' + e(b.memo || b.name || "") + '</em></div>'; }).join("") + '</div>'
@@ -188,7 +194,7 @@
         '<div class="rm-maker">이 앱은 <b>상상을 현실로</b>가 만들었어요 · Made by 정동철<br>발품TOUR 달력 · 직빵 young call 은 <b>개발자의 다른 앱</b>이에요</div>' +
         '<div style="text-align:center;margin-top:10px"><button class="btn ghost" id="chOut" style="width:auto;padding:8px 18px">로그아웃</button></div>' +
         custNav("home"));
-      bindNav();
+      bindNav(); if (window.BP_NOTI) BP_NOTI.afterLogin();
       $("chC").onclick = function () { showCustChat(); };
       if ($("chD")) $("chD").onclick = function () { showCustMy(); };
       if ($("chAll")) $("chAll").onclick = function (ev) { ev.preventDefault(); showCustChat(); };
@@ -241,7 +247,7 @@
     if (m.kind === "want") return '<div class="' + cls + ' card"><span class="k">🔍 집 구해요</span>' + e([b.area, b.type, b.room, b.budget, b.when].filter(Boolean).join(" · ")) + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + t + '</div>';
     if (m.kind === "lowreq") return '<div class="' + cls + ' card"><span class="k">📊 최저가 정보 요청</span>' + e(b.what || "") + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + t + '</div>';
     if (m.kind === "lowans") return '<div class="' + cls + ' card"><span class="k">📊 같은 집 지금 최저가 (' + e(b.date || "") + ' · 7일간 유효)</span><div class="big">' + e(b.price || "지금 나온 것 없음") + '</div>' + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + (b.img ? '<img src="' + e(b.img) + '" alt="광고 캡처">' : '') + t + '</div>';
-    if (m.kind === "sell") return '<div class="rm-b sell' + (mine ? " me" : "") + '"><span class="k">' + (b.mode === "secret" ? "🆘 몰래 빨리 팔아 주세요" : "📝 일반 의뢰") + '</span><div class="big">' + e(b.price || "") + '</div>' + e([b.what, b.mode === "secret" && b.period ? "몰래 " + b.period : "", b.memo].filter(Boolean).join(" · ")) + t + '</div>';
+    if (m.kind === "sell") return '<div class="rm-b sell' + (mine ? " me" : "") + (b.mode === "secret" ? " sos" : "") + '">' + (b.mode === "secret" ? '<span class="sosw">🆘 SOS</span><span class="k">몰래 빨리 팔아 주세요</span>' : '<span class="k">📝 일반 의뢰</span>') + '<div class="big">' + e(b.price || "") + '</div>' + e([b.what, b.mode === "secret" && b.period ? "몰래 " + b.period : "", b.memo].filter(Boolean).join(" · ")) + t + '</div>';
     if (m.kind === "sellend") return '<div class="' + cls + ' card"><span class="k">⏸ 잠시 보류</span>' + e(b.what || "") + ' — 지금은 안 팔래요 (몰래 기간 끝)' + t + '</div>';
     if (m.kind === "repair") return '<div class="' + cls + ' card"><span class="k">🔧 수리 요청</span>' + e(b.text || "") + (b.img ? '<img src="' + e(b.img) + '" alt="수리할 곳">' : '') + t + '</div>';
     return '<div class="' + cls + '">' + e(b.text || "").replace(/\n/g, "<br>") + t + '</div>';
@@ -253,7 +259,7 @@
     app('<div class="loading">불러오는 중…</div>');
     loadMine().then(function () {
       if (!ME.ag) { showCustHome(true); return; }
-      app('<div class="top"><button class="back" id="ccBk">← 홈</button><h2>' + e(ME.ag.office || "상담") + '</h2></div><div class="rm-chat" id="ccL"></div>' +
+      app('<div class="top"><button class="back" id="ccBk">← 처음</button><h2>' + e(ME.ag.office || "상담") + '</h2></div><div class="rm-chat" id="ccL"></div>' +
         '<div class="rm-q">' + ["보러 갈게요", "대출 상담하고 싶어요", "조건을 바꿀게요", "전화 부탁드려요"].map(function (q) { return '<button type="button" data-q="' + e(q) + '">' + e(q) + '</button>'; }).join("") + '</div>' +
         '<div class="rm-in cn"><textarea id="ccT" rows="1" enterkeyhint="send" placeholder="사장님께 보낼 말"></textarea><button class="rm-send" id="ccS" aria-label="보내기">➤</button></div>' + custNav("chat"));
       bindNav(); $("ccBk").onclick = function () { showCustHome(); };
@@ -272,7 +278,7 @@
   /* ---------- 손님: 집 구해요 ---------- */
   window.showCustWant = function () {
     stopPoll(); go("c_want"); var P = { type: "" };
-    app('<div class="top"><button class="back" id="cwBk">← 뒤로</button><h2>🔍 집 구해요</h2></div><div class="card">' +
+    app('<div class="top"><button class="back" id="cwBk">← 처음</button><h2>🔍 집 구해요</h2></div><div class="card">' +
       '<label>찾는 것</label><div class="rm-pick" id="cwT">' + ["전세", "월세", "매매", "상가·사무실"].map(function (t) { return '<button type="button" data-v="' + t + '">' + t + '</button>'; }).join("") + '</div>' +
       '<label for="cwA">동네</label><input id="cwA" placeholder="예) 검암역 근처">' +
       '<label for="cwR">방 · 크기</label><input id="cwR" placeholder="예) 방2 이상, 20평대">' +
@@ -294,7 +300,7 @@
     loadMine().then(function () {
       var ans = ME.msgs.filter(function (m) { return m.kind === "lowans"; }).pop(), req = ME.msgs.filter(function (m) { return m.kind === "lowreq"; }).pop();
       var S = { mode: "" };
-      app('<div class="top"><button class="back" id="csBk">← 뒤로</button><h2>🏷 내 집 내놓기</h2></div>' +
+      app('<div class="top"><button class="back" id="csBk">← 처음</button><h2>🏷 내 집 내놓기</h2></div>' +
         '<div class="card"><div class="sect" style="margin-top:0">1단계 · 먼저 사실부터</div><div class="rm-guide">가격을 정하기 전에, <b>저와 같은 집이 지금 얼마에 나와 있는지</b> 사장님께 여쭤보세요. 네이버 광고 최저가를 캡처해서 알려 드려요.</div>' +
         '<label for="csW">우리 집 (단지·건물 이름, 동, 평형)</label><input id="csW" value="' + e(req && req.body ? req.body.what : "") + '" placeholder="예) 검암 ○○아파트 101동 84㎡">' +
         '<button class="btn" id="csReq">📊 저와 같은 집, 지금 최저가 정보 주세요</button>' +
@@ -331,7 +337,7 @@
       var tot = M.start && M.end ? (new Date(M.end) - new Date(M.start)) / 864e5 : 0, gone = tot ? Math.min(100, Math.max(0, 100 - dd / tot * 100)) : 0;
       var save = function () { return BALPUM.DB.upsert("myhome", "main", M).catch(function (er) { say(msgOf(er)); }); };
       var img = null;
-      app('<div class="top"><button class="back" id="cmBk">← 홈</button><h2>🔑 내 집</h2></div>' +
+      app('<div class="top"><button class="back" id="cmBk">← 처음</button><h2>🔑 내 집</h2></div>' +
         '<div class="card"><div class="sect" style="margin-top:0;display:flex;justify-content:space-between"><span>지금 사는 집 · ' + e(M.kind || "계약") + '</span>' + (dd !== null ? '<span class="rm-d">D' + (dd >= 0 ? "-" + dd : "+" + (-dd)) + '</span>' : '') + '</div>' +
         (dd !== null ? '<div class="rm-bar"><i style="width:' + gone.toFixed(0) + '%"></i></div><div class="hint">' + e(M.start || "") + ' ~ ' + e(M.end) + (dd <= 90 && dd >= 0 ? ' · 만기 3개월 안이에요. 연장할지 이사할지 상담받으세요.' : '') + '</div>' +
           '<div class="rm-two" style="margin:8px 0"><button class="btn" id="cmEx">연장 상담</button><button class="btn ghost" id="cmMv">이사 상담</button></div>' : '') +
@@ -363,10 +369,48 @@
   function unreadOf(l) { var seen = new Date(l.agent_seen).getTime(); return AG.recent.filter(function (m) { return m.customer === l.customer && !m.from_agent && new Date(m.created_at).getTime() > seen; }).length; }
   function loadRooms() { return Promise.all([BALPUM.Room.links(), BALPUM.Room.recent()]).then(function (a) { AG.links = a[0] || []; AG.recent = a[1] || []; return AG; }); }
   function endOf(cid) { var st = secretState(AG.recent.filter(function (m) { return m.customer === cid; }).slice().reverse()); return st && st.over; }
-  window.roomBadge = function () {            // 첫 화면 '손님 방' 칸에 새 상담 수
-    loadRooms().then(function () { var n = AG.links.reduce(function (s, l) { return s + unreadOf(l); }, 0), el = $("hRoom");
-      if (el && n && !el.querySelector(".rm-badge")) { var b = document.createElement("span"); b.className = "rm-badge"; b.textContent = "새 상담 " + n; b.style.marginLeft = "6px"; (el.querySelector(".t1") || el).appendChild(b); } }).catch(function () {});
+  /* ---------- 첫 화면: 새 상담은 눈에 띄게 (빨간 테두리 · 붓글씨 '새 상담 N' · 맨 위 빨간 알림 줄) — v1.5 ---------- */
+  var HB = { last: -1, timer: null };
+  function todayIso() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function dotOn(id, txt) { var el = $(id); if (!el) return; var t = el.querySelector(".t1") || el; var o = t.querySelector(".bp-dot"); if (o) o.remove(); if (!txt) return;
+    var d = document.createElement("span"); d.className = "bp-dot"; d.textContent = txt; t.appendChild(d); }
+  window.bpHomeBadges = function (loud) {
+    if (!$("hRoom")) { clearInterval(HB.timer); HB.timer = null; return; }
+    if (!document.getElementById("bpHbCss")) { var st = document.createElement("style"); st.id = "bpHbCss";
+      st.textContent = '#hRoom.newc{border:2.5px solid #DC2626!important;animation:hbP 1.3s ease-in-out infinite;background:#FEF2F2!important}@keyframes hbP{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}50%{box-shadow:0 0 0 9px rgba(220,38,38,0)}}' +
+        '#hRoom .rm-nb{margin-left:6px;font-size:21px;vertical-align:middle}' +
+        '.bp-new{display:flex;gap:10px;align-items:center;background:#DC2626;color:#fff;border-radius:14px;padding:11px 14px;margin:0 0 10px;cursor:pointer;box-shadow:0 6px 16px rgba(220,38,38,.3);font-size:14px;line-height:1.4}' +
+        '.bp-new b{font-family:"Nanum Brush Script",sans-serif;font-size:24px;font-weight:400;white-space:nowrap;-webkit-text-stroke:.3px #fff}.bp-new span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+        '.bp-dot{display:inline-block;margin-left:6px;background:#DC2626;color:#fff;border-radius:999px;font-size:11.5px;font-weight:800;padding:1px 7px;vertical-align:middle}.bp-dot:empty{width:9px;height:9px;padding:0}';
+      document.head.appendChild(st); }
+    loadRooms().then(function () {
+      var tot = 0, first = null, firstM = null;
+      AG.links.forEach(function (l) { var n = unreadOf(l); if (!n) return; tot += n;
+        var m = AG.recent.filter(function (x) { return x.customer === l.customer && !x.from_agent; })[0];
+        if (m && (!firstM || m.id > firstM.id)) { firstM = m; first = l; } });
+      var el = $("hRoom"); if (!el) return;
+      var t1 = el.querySelector(".t1") || el, ob = t1.querySelector(".rm-nb"); if (ob) ob.remove();
+      el.classList.toggle("newc", tot > 0);
+      if (tot) { var b = document.createElement("span"); b.className = "rm-nb"; b.textContent = "새 상담 " + tot; t1.appendChild(b); }
+      var ban = $("bpNew");
+      if (!tot) { if (ban) ban.remove(); }
+      else {
+        if (!ban) { ban = document.createElement("div"); ban.id = "bpNew"; ban.className = "bp-new"; ban.setAttribute("role", "button"); var u = $("usage"); if (u && u.parentNode) u.parentNode.insertBefore(ban, u); else return; }
+        var sos = firstM && firstM.kind === "sell" && (firstM.body || {}).mode === "secret";
+        ban.innerHTML = '<b>🔔 새 상담 ' + tot + '건</b><span>' + e(first ? first.name : "") + (firstM ? ": " + (sos ? "🆘 몰래 빨리 팔아 주세요" : preview(firstM)) : "") + '</span><b style="font-size:20px">›</b>';
+        ban.onclick = function () { if (first) showRoom(first.customer); else showRooms(); };
+      }
+      if (HB.last >= 0 && tot > HB.last && window.BP_NOTI) BP_NOTI.drop("💬 새 상담 " + tot + "건", first ? first.name + ": " + (firstM ? preview(firstM) : "") : "", function () { if (first) showRoom(first.customer); });
+      HB.last = tot;
+    }).catch(function () {});
+    // 공유방 새 소식 · 오늘 약속 · 영콜 새 표현
+    if (BALPUM.Share && BALPUM.Share.unread) BALPUM.Share.unread().then(function (n) { dotOn("hShare", n ? "새 소식 " + n : ""); });
+    BALPUM.DB.get("calday", todayIso()).then(function (r) { var ev = ((r && r.data) || {}).ev || []; var n = ev.filter(function (x) { return !x.d; }).length; dotOn("hCal", n ? "오늘 약속 " + n : ""); }).catch(function () {});
+    if (window.ycHasNew) dotOn("hYC", ycHasNew() ? "NEW" : "");
+    if (!HB.timer) HB.timer = setInterval(function () { if (!$("hRoom")) { clearInterval(HB.timer); HB.timer = null; return; } if (!document.hidden) bpHomeBadges(); }, 30000);
+    if (window.BP_NOTI) BP_NOTI.afterLogin();
   };
+  window.roomBadge = function () { bpHomeBadges(); };
   window.showRooms = function (fromHist) {
     stopAg(); if (!fromHist) go("rooms");
     app('<div class="top"><button class="back" id="roBk">← 처음</button><h2>💬 손님 방</h2></div><div class="loading">불러오는 중…</div>');
@@ -378,8 +422,9 @@
         '<button class="btn" id="roInv">➕ 손님 초대하기 (링크 · 문자 · QR)</button>' +
         '<div class="hint">초대받은 손님이 이름·전화번호를 적고 들어오면 여기와 <b>고객관리</b>에 저절로 생겨요. 들어온 날·경로·초대 메모도 같이 남아요.</div>' +
         (L.length ? L.map(function (l) { var m = last[l.customer], n = unreadOf(l);
-          return '<div class="rm-row" data-c="' + e(l.customer) + '"><span class="av">' + e(String(l.name || "?").slice(0, 1)) + '</span><span class="tx"><b>' + e(l.name) + ' <span class="hint" style="font-weight:400">' + e(l.purpose || "") + '</span></b>' +
-            '<small>' + (endOf(l.customer) ? '<b style="color:#C2410C">⏰ 몰래 기간 끝 · </b>' : '') + e(m ? preview(m) : fmtPhone(l.phone) + " · " + (l.via || "") + " · " + String(l.created_at).slice(0, 10)) + '</small></span>' + (n ? '<span class="rm-badge">' + n + '</span>' : '') + '</div>'; }).join("")
+          var sos = m && !m.from_agent && m.kind === "sell" && (m.body || {}).mode === "secret";
+          return '<div class="rm-row' + (n ? " new" : "") + '" data-c="' + e(l.customer) + '"><span class="av">' + e(String(l.name || "?").slice(0, 1)) + '</span><span class="tx"><b>' + e(l.name) + ' <span class="hint" style="font-weight:400">' + e(l.purpose || "") + '</span></b>' +
+            '<small>' + (sos ? '<span class="rm-sos">SOS</span> ' : '') + (endOf(l.customer) ? '<b style="color:#C2410C">⏰ 몰래 기간 끝 · </b>' : '') + e(m ? preview(m) : fmtPhone(l.phone) + " · " + (l.via || "") + " · " + String(l.created_at).slice(0, 10)) + '</small></span>' + (n ? '<span class="rm-nb">새 상담 ' + n + '</span>' : '') + '</div>'; }).join("")
           : '<div class="card"><div class="hint" style="margin:0">아직 연결된 손님이 없어요. 위 [손님 초대하기]로 첫 손님을 초대해 보세요.</div></div>'));
       $("roBk").onclick = function () { showHome(); };
       $("roInv").onclick = function () { showInvite(); };

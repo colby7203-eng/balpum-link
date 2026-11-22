@@ -668,11 +668,13 @@
       });
     },
     usage: function () {                      // 무료 체험 남은 건수
-      return Promise.all([loadAccount(true), loadConfig(), DB.list("listing")]).then(function (a) {
-        var acc = a[0] || {}, cfg = a[1] || {}, rows = a[2] || [];
-        var limit = Number(cfg.free_limit) || 80, used = Number(acc.total_registered) || 0;
+      var badge = rpc("my_badge", {}).catch(function () { return null; });   // 🏅 매너 배지면 무료 칸 +10 (v1.5)
+      return Promise.all([loadAccount(true), loadConfig(), DB.list("listing"), badge]).then(function (a) {
+        var acc = a[0] || {}, cfg = a[1] || {}, rows = a[2] || [], bd = a[3] || {};
+        var bonus = Number(bd.bonus) || 0;
+        var limit = (Number(cfg.free_limit) || 80) + bonus, used = Number(acc.total_registered) || 0;
         var active = rows.filter(function (r) { var s = str((r.data || {}).status) || "진행중"; return s === "진행중"; }).length;
-        return { plan: acc.plan || "free", used: used, limit: limit, left: Math.max(0, limit - used), active: active, total: rows.length,
+        return { plan: acc.plan || "free", used: used, limit: limit, left: Math.max(0, limit - used), active: active, total: rows.length, bonus: bonus, badge: !!bd.badge, manner: Number(bd.manner) || 0,
                  enforce: cfg.enforce_limit === true || cfg.enforce_limit === "true", notice: str(cfg.notice) };
       });
     }
@@ -731,8 +733,18 @@
     answer: function (rid, st) { return rpc("share_answer", { rid: rid, st: st }); },
     status: function (pid, st) { return rpc("share_status", { pid: pid, st: st }); },
     del: function (pid) { return rpc("share_delete", { pid: pid }); },
-    rate: function (pid, who, sc, m) { return rpc("share_rate", { pid: pid, who: who, sc: sc, m: str(m) }); }
+    rate: function (pid, who, sc, m, o) {                                   // v1.5: 매너 체크 같이
+      o = o || {};
+      return rpc("share_rate2", { pid: pid, who: who, sc: sc, m: str(m), fee: !!o.fee, promise: !!o.promise, broke: !!o.broke });
+    },
+    agree: function () { return rpc("share_agree", {}); },
+    extend: function (rid) { return rpc("share_extend", { rid: rid }); },
+    visit: function (rid, m) { return rpc("share_visit", { rid: rid, m: str(m) }); },
+    unread: function () { return rpc("share_unread", {}).then(function (n) { return Number(n) || 0; }).catch(function () { return 0; }); },
+    seen: function () { return rpc("share_mark_seen", {}).catch(function () {}); },
+    badge: function () { return rpc("my_badge", {}).catch(function () { return { badge: false, manner: 0, bonus: 0 }; }); }
   };
+  var Push = { save: function (t) { return rpc("push_save", { t: str(t) }).catch(function () { return false; }); } };
 
   function call(fn) {
     var args = Array.prototype.slice.call(arguments, 1);
@@ -742,6 +754,6 @@
     try { return Promise.resolve(f.apply(null, args)); } catch (e) { return Promise.reject(e); }
   }
 
-  window.BALPUM = { call: call, Auth: Auth, Office: Office, API: API, DB: DB, Room: Room, Share: Share, nowStr: nowStr, config: CFG,
+  window.BALPUM = { call: call, Auth: Auth, Office: Office, API: API, DB: DB, Room: Room, Share: Share, Push: Push, nowStr: nowStr, config: CFG,
                     _setBase: function (b, k) { BASE = b; KEY = k || KEY; } };
 })();

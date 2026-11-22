@@ -66,15 +66,15 @@
   function say(t) { if (window.toast) window.toast(t); }
 
   /* ---------- 자료 (서버) ---------- */
-  var C = { days: {}, mons: {}, cfg: { tide: false, sea: "w", balances: [] }, loaded: false };
+  var C = { days: {}, mons: {}, cfg: { tide: false, sea: "w", balances: [], remind: 30 }, loaded: false };
   var V = { cur: clampYM({ y: now.getFullYear(), m: now.getMonth() }), sel: TODAY, tab: "mark", io: "out", cat: "식비", evc: "lav", fresh: null, balEdit: false };
   if (TODAY < dn(MIN.y, MIN.m, 1) || TODAY > dn(MAX.y, MAX.m, 31)) V.sel = dn(V.cur.y, V.cur.m, 1);
   function load() {
     return Promise.all([BALPUM.DB.list("calday"), BALPUM.DB.list("calmon"), BALPUM.DB.setting("cal", null)]).then(function (a) {
       C.days = {}; a[0].forEach(function (r) { C.days[r.id] = r.data || {}; });
       C.mons = {}; a[1].forEach(function (r) { C.mons[r.id] = r.data || {}; });
-      var cf = a[2] || {}; C.cfg = { tide: !!cf.tide, sea: cf.sea === "s" ? "s" : "w", balances: Array.isArray(cf.balances) ? cf.balances : [] };
-      C.loaded = true;
+      var cf = a[2] || {}; C.cfg = { tide: !!cf.tide, sea: cf.sea === "s" ? "s" : "w", balances: Array.isArray(cf.balances) ? cf.balances : [], remind: cf.remind === undefined ? 30 : +cf.remind };
+      C.loaded = true; notiLater();
     });
   }
   var T = {}, pending = 0;
@@ -89,7 +89,13 @@
     if (emptyDay(r)) delete C.days[k]; else C.days[k] = r;
     if (C.days[k]) r.posts = r.posts || [];
     later("d" + k, function () { return C.days[k] ? BALPUM.DB.upsert("calday", k, C.days[k]) : BALPUM.DB.del("calday", k); });
+    notiLater();
   }
+  // 🔔 약속 알림 (v1.5) — 약속이 바뀌면 핸드폰 알림을 다시 맞춤
+  var notiT = null;
+  function notiLater() { clearTimeout(notiT); notiT = setTimeout(function () { if (window.BP_NOTI && BP_NOTI.can()) BP_NOTI.calSync(C.days, C.cfg.remind); }, 1500); }
+  window.calNotiSync = function () { if (!(window.BP_NOTI && BP_NOTI.can())) return; (C.loaded ? Promise.resolve() : load()).then(notiLater).catch(function () {}); };
+  var REM = [[-1, "끔"], [0, "약속 시각에"], [10, "10분 전"], [30, "30분 전"], [60, "1시간 전"], [120, "2시간 전"], [1440, "하루 전"]];
   function ymk() { return V.cur.y + "-" + (V.cur.m < 9 ? "0" : "") + (V.cur.m + 1); }
   function M() { var r = C.mons[ymk()] || {}; r.notes = r.notes || []; return r; }
   function putMon(r) { var k = ymk(); if (!r.notes.length && !r.budget) delete C.mons[k]; else C.mons[k] = r;
@@ -461,7 +467,10 @@
   function peelFx(k, then) { var el = $("cPS"); if (!el || reduced()) { if (then) then(); return; } el.classList.remove("peel", "stick2"); void el.offsetWidth; el.classList.add(k === "out" ? "peel" : "stick2"); sound(k === "out" ? "rip" : "stick"); if (then) setTimeout(then, 380); }
   function diaryHTML() {
     var r = D(V.sel), evs = r.ev.map(function (x, i) { var y = Object.assign({}, x); y.i = i; return y; }).sort(function (a, b) { return (a.t || "99").localeCompare(b.t || "99"); });
-    var h = '<div class="sub2">일정 · 약속 ' + (evs.length ? evs.length + "개" : "") + '</div><div>' + (evs.length ? evs.map(function (x) {
+    var h = '<div class="crow" style="align-items:center;justify-content:space-between;background:#FFF7ED;border-radius:12px;padding:6px 10px"><span style="font-weight:700">🔔 약속 알림</span>' +
+      (window.BP_NOTI && BP_NOTI.can() ? '<select class="in" id="cRem" aria-label="약속 알림" style="width:auto;min-width:120px">' + REM.map(function (o) { return '<option value="' + o[0] + '"' + (+C.cfg.remind === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>'
+        : '<span class="cwhy" style="margin:0">핸드폰 발품 앱에서 약속 ' + (REM.filter(function (o) { return o[0] === +C.cfg.remind; })[0] || REM[3])[1] + ' 울려요</span>') + '</div>' +
+      '<div class="sub2">일정 · 약속 ' + (evs.length ? evs.length + "개" : "") + '</div><div>' + (evs.length ? evs.map(function (x) {
       return '<div class="li' + (x.d ? " done" : "") + '"><span style="display:flex;gap:8px;align-items:center"><span class="cbar" style="background:var(--' + (x.c || "lav") + ')"></span><input type="checkbox" data-evd="' + x.i + '"' + (x.d ? " checked" : "") + ' aria-label="마침"></span>' +
         '<span class="ctx"><b>' + e(x.t || "하루 종일") + '</b> ' + e(x.x) + (x.p ? "<small>" + e(x.p) + "</small>" : "") + '</span><button type="button" class="cx" data-evx="' + x.i + '" aria-label="지우기">×</button></div>'; }).join("") : '<div class="cwhy">이날 약속이 없어요. 아래에 적어 보세요.</div>') + '</div>' +
       '<div class="crow"><input class="in" type="time" id="cEvT" aria-label="시각"><input class="in cgrow" id="cEvX" placeholder="약속 (예: 검암역 302호 계약)" aria-label="약속"></div>' +
@@ -481,6 +490,7 @@
     $("cEvA").onclick = function () { var x = $("cEvX").value.trim(); if (!x) { $("cEvX").focus(); say("약속 내용을 적어 주세요."); return; }
       var r = D(V.sel); r.ev.push({ id: uid("e"), t: $("cEvT").value || "", x: x, p: $("cEvP").value.trim(), c: V.evc, d: false }); putDay(V.sel, r); grid(); panel(); say(dayTitle(V.sel) + " 일정을 넣었어요."); };
     $("cEvX").onkeydown = function (ev) { if (ev.key === "Enter") $("cEvA").click(); };
+    if ($("cRem")) $("cRem").onchange = function () { C.cfg.remind = +this.value; putCfg(); notiLater(); say(C.cfg.remind < 0 ? "약속 알림을 껐어요" : "약속 " + this.options[this.selectedIndex].text + " 알림이 울려요"); };
     Array.prototype.forEach.call(q("[data-tdd]"), function (b) { b.onchange = function () { var r = D(V.sel); r.todo[+b.getAttribute("data-tdd")].d = b.checked; putDay(V.sel, r); panel(); }; });
     Array.prototype.forEach.call(q("[data-tdx]"), function (b) { b.onclick = function () { var r = D(V.sel); r.todo.splice(+b.getAttribute("data-tdx"), 1); putDay(V.sel, r); panel(); }; });
     $("cTdA").onclick = function () { var x = $("cTdX").value.trim(); if (!x) return; var r = D(V.sel); r.todo.push({ x: x, d: false }); putDay(V.sel, r); panel(); };

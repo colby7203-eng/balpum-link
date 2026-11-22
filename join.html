@@ -98,7 +98,10 @@
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(r){ r = Array.isArray(r) ? r[0] : r;
       if (!r || !r.office) { ofc.textContent = "초대 코드를 찾을 수 없어요"; t.textContent = "부동산에 새 초대 링크를 부탁해 주세요."; return; }
-      ofc.textContent = r.office + "이(가) 초대했어요"; t.textContent = [r.ceo ? "대표 " + r.ceo : "", r.tel || "", r.addr || ""].filter(Boolean).join(" · "); })
+      ofc.textContent = r.office + "이(가) 초대했어요"; t.textContent = [r.ceo ? "대표 " + r.ceo : "", r.tel || "", r.addr || ""].filter(Boolean).join(" · ");
+      if (r.badge) { var bd = document.createElement("div"); bd.textContent = "🏅 동네 부동산들이 믿고 같이 하는 사무소";
+        bd.style.cssText = "display:inline-block;margin-top:6px;background:#FEF3C7;color:#92400E;border:1px solid #F59E0B;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:800";
+        document.getElementById("who").appendChild(bd); } })
     .catch(function(){ ofc.textContent = "부동산에서 초대했어요"; t.textContent = "(인터넷 연결을 확인해 주세요)"; });
 })();
 </script>
