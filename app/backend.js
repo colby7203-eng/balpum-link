@@ -716,7 +716,22 @@
       var u = Auth.user(); if (!u) return Promise.reject(err("로그인이 필요해요."));
       var code = newCode();
       return rest("POST", "invites", { code: code, agent: u.id, memo: str(memo).slice(0, 300) }, "return=minimal").then(function () { return code; });
-    }
+    },
+    gift: function () { return rpc("gift_invite", {}); }           // 🎁 직빵 young call 선물 (v1.4)
+  };
+
+  /* ======================= 🤝 발품 공유방 (v1.4 · 같은 동네) ======================= */
+  var Share = {
+    me: function () { return rpc("share_me", {}); },
+    setDong: function (d) { return rpc("share_set_dong", { d: str(d) }); },
+    feed: function () { return rpc("share_feed", {}).then(function (r) { return r || []; }); },
+    post: function (k, t, b) { return rpc("share_post", { k: k, t: str(t), b: b || {} }); },
+    req: function (pid, m) { return rpc("share_req", { pid: pid, m: str(m) }); },
+    my: function () { return rpc("share_my", {}).then(function (r) { return r || { posts: [], sent: [] }; }); },
+    answer: function (rid, st) { return rpc("share_answer", { rid: rid, st: st }); },
+    status: function (pid, st) { return rpc("share_status", { pid: pid, st: st }); },
+    del: function (pid) { return rpc("share_delete", { pid: pid }); },
+    rate: function (pid, who, sc, m) { return rpc("share_rate", { pid: pid, who: who, sc: sc, m: str(m) }); }
   };
 
   function call(fn) {
@@ -727,6 +742,6 @@
     try { return Promise.resolve(f.apply(null, args)); } catch (e) { return Promise.reject(e); }
   }
 
-  window.BALPUM = { call: call, Auth: Auth, Office: Office, API: API, DB: DB, Room: Room, nowStr: nowStr, config: CFG,
+  window.BALPUM = { call: call, Auth: Auth, Office: Office, API: API, DB: DB, Room: Room, Share: Share, nowStr: nowStr, config: CFG,
                     _setBase: function (b, k) { BASE = b; KEY = k || KEY; } };
 })();

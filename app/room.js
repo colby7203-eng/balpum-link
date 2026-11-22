@@ -45,6 +45,7 @@
     '.rm-lc small{color:#64748B;font-size:12px}.rm-lc b{font-size:17px}.rm-lc em{font-style:normal;color:#15803D;font-size:12px}' +
     '.rm-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:640px;background:#fff;border-top:1px solid #E2E8F0;display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom,0px);z-index:20;box-shadow:0 -2px 10px rgba(15,23,42,.06)}.rm-pad{height:calc(72px + env(safe-area-inset-bottom,0px))}' +
     '.rm-in.cn{bottom:calc(60px + env(safe-area-inset-bottom,0px))}' +
+    'body.kb-open{padding-bottom:var(--kb,0px)}body.kb-open .rm-nav{display:none}body.kb-open .rm-in,body.kb-open .rm-in.cn{bottom:var(--kb,0px)}' +
     '.rm-nav button{border:0;background:transparent;padding:9px 0 8px;font:600 12px "Noto Sans KR",sans-serif;color:#64748B;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;position:relative}' +
     '.rm-nav button i{font-style:normal;font-size:20px}.rm-nav button.on{color:#1E2A78;font-weight:800}' +
     '.rm-dot{position:absolute;top:5px;left:calc(50% + 6px);min-width:16px;height:16px;border-radius:8px;background:#DC2626;color:#fff;font-size:10px;line-height:16px;padding:0 4px}' +
@@ -71,6 +72,10 @@
     '.rm-code{font-size:30px;font-weight:800;letter-spacing:.25em;text-align:center;color:#1E2A78;margin:4px 0}' +
     '.rm-d{font-size:30px;font-weight:800;color:#B45309}.rm-bar{height:8px;border-radius:4px;background:#E2E8F0;overflow:hidden}.rm-bar i{display:block;height:100%;background:#F97316}' +
     '.rm-chk{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:14.5px}.rm-chk input{width:20px;height:20px}.rm-chk.done span{text-decoration:line-through;color:#94A3B8}' +
+    '.rm-hd{display:flex;flex-direction:column;align-items:center;gap:6px;margin:-14px -14px 12px;padding:16px 14px 12px;border-radius:0 0 20px 20px}.rm-hd .nm{font:700 13px "Noto Sans KR",sans-serif;color:#5A3D00}' +
+    '.rm-corners{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.rm-corner{border:0;border-radius:16px;padding:14px 8px 10px;display:grid;justify-items:center;gap:6px;position:relative;cursor:pointer;box-shadow:0 5px 14px rgba(255,180,0,.32);overflow:hidden}' +
+    '.rm-corner small{font:700 11.5px "Noto Sans KR",sans-serif;color:#5A3D00}.rm-corner .gf{position:absolute;right:8px;top:6px;font-size:15px}' +
+    '.rm-maker{margin-top:14px;border-top:1px dashed #D5D9E6;padding-top:10px;text-align:center;font-size:12px;color:#64748B;line-height:1.6}.rm-maker b{color:#1E2A78}' +
     '.rm-head{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 14px}.rm-foot{width:64px;height:64px;border-radius:20px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15)}' +
     '</style>';
 
@@ -105,6 +110,7 @@
     $("cjC").oninput = look; look();
     each("#cjU button", function (b) { b.onclick = function () { P.purpose = b.getAttribute("data-p"); each("#cjU button", function (x) { x.classList.toggle("on", x === b); }); }; });
     $("cjBk").onclick = function () { showCustEntry(); };
+    if (!code && window.bpClipJoin) bpClipJoin().then(function (j) { var c = $("cjC"); if (j && c && !c.value) { c.value = j.code; via = viaName(j.via); look(); say("복사해 둔 초대 코드를 넣었어요"); } }).catch(function () {});
     $("cjGo").onclick = function () {
       var c = $("cjC").value.trim().toUpperCase(), n = $("cjN").value.trim(), ph = $("cjP").value.replace(/\D/g, ""), k = $("cjK").value.trim();
       if (c.length !== 6) { say("초대 코드 6자리를 넣어 주세요."); return; }
@@ -127,10 +133,16 @@
       BALPUM.Room.login($("clP").value, $("clK").value.trim()).then(function () { window.BP_CUST = undefined; startHome(); })
         .catch(function (er) { b.disabled = false; say(msgOf(er)); }); };
   };
+  function viaName(v) { return v === "qr" ? "QR" : v === "sms" ? "문자 링크" : v === "kakao" ? "카톡 링크" : v === "gift" ? "영콜 선물" : "링크"; }
+  // 앱을 처음 켰을 때: 홈페이지 초대 페이지에서 복사해 둔 코드가 있으면 바로 가입 화면으로
+  window.joinFromClip = function () {
+    if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) || !window.bpClipJoin) return;
+    bpClipJoin().then(function (j) { if (j && !BALPUM.Auth.user()) { showCustJoin(j.code, viaName(j.via)); say("초대 코드 " + j.code + "를 넣어 두었어요"); } }).catch(function () {});
+  };
   window.joinFromUrl = function () {
     var q = new URLSearchParams(location.search), c = q.get("join");
     if (!c) return false;
-    var v = q.get("v"); showCustJoin(c, v === "qr" ? "QR" : v === "sms" ? "문자 링크" : v === "kakao" ? "카톡 링크" : "링크");
+    var v = q.get("v"); showCustJoin(c, viaName(v));
     return true;
   };
 
@@ -160,16 +172,21 @@
         $("chJ").onclick = function () { showCustJoin(""); }; $("chOut").onclick = custLogout; return; }
       var dd = mh.end ? Math.ceil((new Date(mh.end + "T00:00:00") - new Date(new Date().toDateString())) / 864e5) : null;
       var ls = ME.msgs.filter(function (m) { return m.kind === "listing"; }).slice(-4).reverse();
-      app('<div class="rm-head" style="flex-direction:row;justify-content:center;margin:2px 0 12px"><div class="rm-foot" style="width:40px;height:40px;border-radius:12px">' + FOOT + '</div><div style="font-size:19px;font-weight:800">발품 <span style="color:#64748B;font-size:13px;font-weight:500">손님 · ' + e(a.name || "") + '님</span></div></div>' +
+      var se = secretState(ME.msgs);
+      app('<div class="rm-hd bpy">' + (window.BP_LOGO ? BP_LOGO("tour", 40) : "발품") + '<span class="nm">손님 · ' + e(a.name || "") + '님</span></div>' +
+        (se && se.over ? '<div class="rm-alert" id="chSe" style="background:#FFEDD5"><span style="font-size:24px">⏰</span><span style="flex:1"><b>몰래 기간이 끝났어요</b><small>일반 의뢰로 바꿀지, 한 번 더 몰래 맡길지 골라 주세요</small></span><b style="color:#C2410C">고르기 ›</b></div>' : '') +
         '<div class="rm-office"><small>내 부동산</small><b>' + e(a.office || "부동산") + '</b><div class="ad">' + e([a.addr, a.ceo ? "대표 " + a.ceo : ""].filter(Boolean).join(" · ")) + '</div>' +
         '<div class="rm-two"><button class="rm-wb" id="chC">💬 상담하기</button>' + ((a.tel || a.mobile) ? '<a class="rm-wb dk" href="tel:' + e(String(a.tel || a.mobile).replace(/[^\d+]/g, "")) + '">📞 ' + e(a.tel || a.mobile) + '</a>' : '<span></span>') + '</div></div>' +
         (dd !== null ? '<div class="rm-alert" id="chD"><span style="font-size:24px">📅</span><span style="flex:1"><b>' + e(mh.kind || "계약") + ' 만기 ' + (dd >= 0 ? dd + "일 남았어요" : (-dd) + "일 지났어요") + '</b><small>연장할지 이사할지 미리 상담받으세요</small></span><b style="color:#B45309">D' + (dd >= 0 ? "-" + dd : "+" + (-dd)) + '</b></div>' : '') +
-        '<div class="rm-tiles">' + [["want", "🔍", "집 구해요"], ["sell", "🏷", "집 내놓기"], ["low", "📊", "우리 집 최저가"], ["repair", "🔧", "수리 요청"], ["move", "🚚", "이사 준비"], ["cal", "📅", "달력·가계부"]].map(function (t) {
+        '<div class="rm-tiles">' + [["want", "🔍", "집 구해요"], ["sell", "🏷", "집 내놓기"], ["low", "📊", "최저가 확인"], ["repair", "🔧", "수리 요청"], ["move", "🚚", "이사 준비"], ["chat", "💬", "상담"]].map(function (t) {
           return '<button type="button" class="rm-tile" data-t="' + t[0] + '"><i>' + t[1] + '</i>' + t[2] + '</button>'; }).join("") + '</div>' +
+        '<div class="rm-corners"><button type="button" class="rm-corner bpy" data-t="yc"><span class="gf">🎁</span>' + (window.BP_LOGO ? BP_LOGO("yc", 30) : "직빵 young call") + '<small>샘이랑 영어 수다</small></button>' +
+        '<button type="button" class="rm-corner bpy" data-t="cal"><span class="gf">🎁</span>' + (window.BP_LOGO ? BP_LOGO("cal", 26) : "발품TOUR 달력") + '<small>음력 · 약속 · 가계부</small></button></div>' +
         '<div class="rm-sect"><span>사장님이 골라 준 매물</span>' + (ls.length ? '<a href="#" id="chAll" style="font-size:13px">상담에서 보기</a>' : '') + '</div>' +
         (ls.length ? '<div class="rm-ls">' + ls.map(function (m) { var b = m.body || {}; return '<div class="rm-lc" data-go="chat"><small>' + e([b.dong, b.room, b.deal].filter(Boolean).join(" · ")) + '</small><b>' + e(b.price || "") + '</b><em>' + e(b.memo || b.name || "") + '</em></div>'; }).join("") + '</div>'
           : '<div class="hint">사장님이 매물을 골라 보내면 여기에 나와요. [집 구해요]로 찾는 집을 알려 주세요.</div>') +
-        '<div style="text-align:center;margin-top:14px"><button class="btn ghost" id="chOut" style="width:auto;padding:8px 18px">로그아웃</button></div>' +
+        '<div class="rm-maker">이 앱은 <b>상상을 현실로</b>가 만들었어요 · Made by 정동철<br>발품TOUR 달력 · 직빵 young call 은 <b>개발자의 다른 앱</b>이에요</div>' +
+        '<div style="text-align:center;margin-top:10px"><button class="btn ghost" id="chOut" style="width:auto;padding:8px 18px">로그아웃</button></div>' +
         custNav("home"));
       bindNav();
       $("chC").onclick = function () { showCustChat(); };
@@ -177,11 +194,45 @@
       if ($("chAll")) $("chAll").onclick = function (ev) { ev.preventDefault(); showCustChat(); };
       each(".rm-lc", function (x) { x.onclick = function () { showCustChat(); }; });
       each("[data-t]", function (b) { b.onclick = function () { var t = b.getAttribute("data-t");
-        t === "want" ? showCustWant() : t === "sell" || t === "low" ? showCustSell() : t === "cal" ? showCal() : showCustMy(t); }; });
+        t === "want" ? showCustWant() : t === "sell" || t === "low" ? showCustSell() : t === "cal" ? showCal() : t === "chat" ? showCustChat() : t === "yc" ? (window.showYC ? showYC() : say("곧 열려요")) : showCustMy(t); }; });
+      if ($("chSe")) $("chSe").onclick = function () { showCustChat(); };
       $("chOut").onclick = custLogout;
     }).catch(function (er) { app('<div class="card"><div class="err">' + e(msgOf(er)) + '</div><button class="btn" onclick="showCustHome()">다시 해 보기</button></div>'); });
   };
   function custLogout() { if (!confirm("로그아웃할까요? 다시 들어올 때 전화번호와 숫자 6자리가 필요해요.")) return; stopPoll(); BALPUM.Auth.signOut().then(function () { window.BP_CUST = undefined; showLogin("", "in", "로그아웃했어요."); }); }
+
+  /* ---------- 몰래 기간이 끝났는지 (손님이 고를 때까지) ---------- */
+  var PMON = { "1개월": 1, "2개월": 2, "3개월": 3 };
+  function secretState(msgs) {
+    var last = null; (msgs || []).forEach(function (m) { if (!m.from_agent && (m.kind === "sell" || m.kind === "sellend")) last = m; });
+    if (!last || last.kind !== "sell" || (last.body || {}).mode !== "secret") return null;
+    var mo = PMON[(last.body || {}).period] || 0; if (!mo) return null;
+    var end = new Date(last.created_at); end.setMonth(end.getMonth() + mo);
+    var now = new Date(); return { m: last, end: end, over: now >= end, days: Math.max(0, Math.floor((now - end) / 864e5)) };
+  }
+  window.BP_secretState = secretState;
+  function ymd(d) { return d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate(); }
+  function endCard(st) {
+    var b = st.m.body || {};
+    return '<div class="rm-b sell" style="width:92%;align-self:center" id="seCard"><span class="k">⏰ 몰래 기간(' + e(b.period) + ')이 끝났어요 · ' + ymd(st.end) + '</span>' +
+      '<div style="margin:2px 0 8px">' + e([b.what, b.price].filter(Boolean).join(" · ")) + '<br>어떻게 할지 골라 주세요. 고르신 대로 사장님께 바로 알려 드려요.</div>' +
+      '<div class="rm-choice" style="grid-template-columns:1fr 1fr">' +
+      '<button type="button" class="rm-ch" data-se="general"><b>📝 일반 의뢰로</b><small>이제 광고해도 돼요 (네이버 줄광고 30일 등)</small></button>' +
+      '<button type="button" class="rm-ch sec" data-se="again"><b>🆘 몰래 한 번 더</b><small>1 · 2 · 3개월 다시 맡기기</small></button>' +
+      '<button type="button" class="rm-ch" data-se="low"><b>📊 최저가 다시 확인</b><small>그사이 바뀐 최저가 물어보기</small></button>' +
+      '<button type="button" class="rm-ch" data-se="hold"><b>⏸ 잠시 보류</b><small>지금은 안 팔래요</small></button></div>' +
+      '<div id="seMore"></div></div>';
+  }
+  function bindEndCard(st, after) {
+    var b = st.m.body || {};
+    each("[data-se]", function (x) { x.onclick = function () { var k = x.getAttribute("data-se");
+      if (k === "general") sendMine("sell", { mode: "general", price: b.price || "", what: b.what || "", memo: "몰래 기간이 끝나 일반 의뢰로 바꿨어요" }).then(function () { say("일반 의뢰로 바꿨어요. 사장님께 알려 드렸어요."); after(); }).catch(function (er) { say(msgOf(er)); });
+      else if (k === "hold") sendMine("sellend", { choice: "hold", what: b.what || "" }).then(function () { say("보류했어요. 언제든 다시 내놓을 수 있어요."); after(); }).catch(function (er) { say(msgOf(er)); });
+      else if (k === "low") sendMine("lowreq", { what: b.what || "", memo: "몰래 기간이 끝나서 지금 최저가를 다시 알고 싶어요" }).then(function () { say("최저가를 다시 물어봤어요. 답장을 보고 골라 주세요."); after(); }).catch(function (er) { say(msgOf(er)); });
+      else { $("seMore").innerHTML = '<div class="rm-pick" style="margin-top:8px">' + ["1개월", "2개월", "3개월"].map(function (p) { return '<button type="button" data-sp="' + p + '">' + p + ' 더</button>'; }).join("") + '</div>';
+        each("[data-sp]", function (y) { y.onclick = function () { sendMine("sell", { mode: "secret", price: b.price || "", period: y.getAttribute("data-sp"), what: b.what || "", memo: "몰래 한 번 더 맡겨요" }).then(function () { say("몰래 " + y.getAttribute("data-sp") + " 더 맡겼어요."); after(); }).catch(function (er) { say(msgOf(er)); }); }; }); }
+    }; });
+  }
 
   /* ---------- 말풍선 ---------- */
   function bubble(m, mine) {
@@ -191,6 +242,7 @@
     if (m.kind === "lowreq") return '<div class="' + cls + ' card"><span class="k">📊 최저가 정보 요청</span>' + e(b.what || "") + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + t + '</div>';
     if (m.kind === "lowans") return '<div class="' + cls + ' card"><span class="k">📊 같은 집 지금 최저가 (' + e(b.date || "") + ' · 7일간 유효)</span><div class="big">' + e(b.price || "지금 나온 것 없음") + '</div>' + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + (b.img ? '<img src="' + e(b.img) + '" alt="광고 캡처">' : '') + t + '</div>';
     if (m.kind === "sell") return '<div class="rm-b sell' + (mine ? " me" : "") + '"><span class="k">' + (b.mode === "secret" ? "🆘 몰래 빨리 팔아 주세요" : "📝 일반 의뢰") + '</span><div class="big">' + e(b.price || "") + '</div>' + e([b.what, b.mode === "secret" && b.period ? "몰래 " + b.period : "", b.memo].filter(Boolean).join(" · ")) + t + '</div>';
+    if (m.kind === "sellend") return '<div class="' + cls + ' card"><span class="k">⏸ 잠시 보류</span>' + e(b.what || "") + ' — 지금은 안 팔래요 (몰래 기간 끝)' + t + '</div>';
     if (m.kind === "repair") return '<div class="' + cls + ' card"><span class="k">🔧 수리 요청</span>' + e(b.text || "") + (b.img ? '<img src="' + e(b.img) + '" alt="수리할 곳">' : '') + t + '</div>';
     return '<div class="' + cls + '">' + e(b.text || "").replace(/\n/g, "<br>") + t + '</div>';
   }
@@ -203,9 +255,12 @@
       if (!ME.ag) { showCustHome(true); return; }
       app('<div class="top"><button class="back" id="ccBk">← 홈</button><h2>' + e(ME.ag.office || "상담") + '</h2></div><div class="rm-chat" id="ccL"></div>' +
         '<div class="rm-q">' + ["보러 갈게요", "대출 상담하고 싶어요", "조건을 바꿀게요", "전화 부탁드려요"].map(function (q) { return '<button type="button" data-q="' + e(q) + '">' + e(q) + '</button>'; }).join("") + '</div>' +
-        '<div class="rm-in cn"><textarea id="ccT" rows="1" placeholder="사장님께 보낼 말"></textarea><button class="rm-send" id="ccS" aria-label="보내기">➤</button></div>' + custNav("chat"));
+        '<div class="rm-in cn"><textarea id="ccT" rows="1" enterkeyhint="send" placeholder="사장님께 보낼 말"></textarea><button class="rm-send" id="ccS" aria-label="보내기">➤</button></div>' + custNav("chat"));
       bindNav(); $("ccBk").onclick = function () { showCustHome(); };
-      var draw = function () { var L = $("ccL"); if (!L) return; L.innerHTML = ME.msgs.length ? ME.msgs.map(function (m) { return bubble(m, !m.from_agent); }).join("") : '<div class="hint">사장님께 궁금한 것을 편하게 적어 보세요.</div>'; window.scrollTo(0, document.body.scrollHeight); };
+      var draw = function () { var L = $("ccL"); if (!L) return; var st = secretState(ME.msgs);
+        L.innerHTML = (ME.msgs.length ? ME.msgs.map(function (m) { return bubble(m, !m.from_agent); }).join("") : '<div class="hint">사장님께 궁금한 것을 편하게 적어 보세요.</div>') + (st && st.over ? endCard(st) : '');
+        if (st && st.over) bindEndCard(st, function () { loadMine().then(draw); });
+        window.scrollTo(0, document.body.scrollHeight); };
       var send = function (t) { t = String(t || "").trim(); if (!t) return; sendMine("text", { text: t }).then(function () { $("ccT").value = ""; return loadMine(); }).then(draw).catch(function (er) { say(msgOf(er)); }); };
       draw(); BALPUM.Room.seen(cust().id).catch(function () {});
       $("ccS").onclick = function () { send($("ccT").value); };
@@ -307,6 +362,7 @@
   var AG = { links: [], recent: [], timer: null };
   function unreadOf(l) { var seen = new Date(l.agent_seen).getTime(); return AG.recent.filter(function (m) { return m.customer === l.customer && !m.from_agent && new Date(m.created_at).getTime() > seen; }).length; }
   function loadRooms() { return Promise.all([BALPUM.Room.links(), BALPUM.Room.recent()]).then(function (a) { AG.links = a[0] || []; AG.recent = a[1] || []; return AG; }); }
+  function endOf(cid) { var st = secretState(AG.recent.filter(function (m) { return m.customer === cid; }).slice().reverse()); return st && st.over; }
   window.roomBadge = function () {            // 첫 화면 '손님 방' 칸에 새 상담 수
     loadRooms().then(function () { var n = AG.links.reduce(function (s, l) { return s + unreadOf(l); }, 0), el = $("hRoom");
       if (el && n && !el.querySelector(".rm-badge")) { var b = document.createElement("span"); b.className = "rm-badge"; b.textContent = "새 상담 " + n; b.style.marginLeft = "6px"; (el.querySelector(".t1") || el).appendChild(b); } }).catch(function () {});
@@ -323,7 +379,7 @@
         '<div class="hint">초대받은 손님이 이름·전화번호를 적고 들어오면 여기와 <b>고객관리</b>에 저절로 생겨요. 들어온 날·경로·초대 메모도 같이 남아요.</div>' +
         (L.length ? L.map(function (l) { var m = last[l.customer], n = unreadOf(l);
           return '<div class="rm-row" data-c="' + e(l.customer) + '"><span class="av">' + e(String(l.name || "?").slice(0, 1)) + '</span><span class="tx"><b>' + e(l.name) + ' <span class="hint" style="font-weight:400">' + e(l.purpose || "") + '</span></b>' +
-            '<small>' + e(m ? preview(m) : fmtPhone(l.phone) + " · " + (l.via || "") + " · " + String(l.created_at).slice(0, 10)) + '</small></span>' + (n ? '<span class="rm-badge">' + n + '</span>' : '') + '</div>'; }).join("")
+            '<small>' + (endOf(l.customer) ? '<b style="color:#C2410C">⏰ 몰래 기간 끝 · </b>' : '') + e(m ? preview(m) : fmtPhone(l.phone) + " · " + (l.via || "") + " · " + String(l.created_at).slice(0, 10)) + '</small></span>' + (n ? '<span class="rm-badge">' + n + '</span>' : '') + '</div>'; }).join("")
           : '<div class="card"><div class="hint" style="margin:0">아직 연결된 손님이 없어요. 위 [손님 초대하기]로 첫 손님을 초대해 보세요.</div></div>'));
       $("roBk").onclick = function () { showHome(); };
       $("roInv").onclick = function () { showInvite(); };
@@ -331,7 +387,7 @@
     }).catch(function (er) { say(msgOf(er)); });
   };
   function preview(m) { var b = m.body || {}, who = m.from_agent ? "나: " : "";
-    return who + (m.kind === "listing" ? "🏠 매물 " + (b.price || "") : m.kind === "lowreq" ? "📊 최저가 요청 · " + (b.what || "") : m.kind === "lowans" ? "📊 최저가 답장 " + (b.price || "") : m.kind === "sell" ? (b.mode === "secret" ? "🆘 몰래 빨리 " : "📝 일반 의뢰 ") + (b.price || "") : m.kind === "repair" ? "🔧 수리 요청 " + (b.text || "") : m.kind === "want" ? "🔍 집 구해요 " + [b.type, b.area].filter(Boolean).join(" ") : (b.text || "")); }
+    return who + (m.kind === "listing" ? "🏠 매물 " + (b.price || "") : m.kind === "lowreq" ? "📊 최저가 요청 · " + (b.what || "") : m.kind === "lowans" ? "📊 최저가 답장 " + (b.price || "") : m.kind === "sellend" ? "⏸ 보류 " + (b.what || "") : m.kind === "sell" ? (b.mode === "secret" ? "🆘 몰래 빨리 " : "📝 일반 의뢰 ") + (b.price || "") : m.kind === "repair" ? "🔧 수리 요청 " + (b.text || "") : m.kind === "want" ? "🔍 집 구해요 " + [b.type, b.area].filter(Boolean).join(" ") : (b.text || "")); }
   window.showInvite = function () {
     go("invite");
     app('<div class="top"><button class="back" id="ivBk">← 손님 방</button><h2>➕ 손님 초대</h2></div><div class="card">' +
@@ -368,8 +424,11 @@
         (L.cust_id && typeof showCustDetail === "function" ? '<button class="btn ghost" id="rmCu" style="margin:8px 0 0">👥 고객관리에서 보기</button>' : '') + '</div>' +
         '<div class="rm-chat" id="rmL"></div>' +
         '<div class="rm-q"><button type="button" id="rmLs">🏠 매물 보내기</button><button type="button" id="rmLow">📊 최저가 답장</button></div><div id="rmX"></div>' +
-        '<div class="rm-in"><textarea id="rmT" rows="1" placeholder="손님께 보낼 말"></textarea><button class="rm-send" id="rmS" aria-label="보내기">➤</button></div>');
-      var draw = function () { var el = $("rmL"); if (!el) return; el.innerHTML = msgs.length ? msgs.map(function (m) { return bubble(m, m.from_agent); }).join("") : '<div class="hint">손님이 들어왔어요. 인사를 건네 보세요.</div>'; window.scrollTo(0, document.body.scrollHeight); };
+        '<div class="rm-in"><textarea id="rmT" rows="1" enterkeyhint="send" placeholder="손님께 보낼 말"></textarea><button class="rm-send" id="rmS" aria-label="보내기">➤</button></div>');
+      var draw = function () { var el = $("rmL"); if (!el) return; var st = secretState(msgs);
+        el.innerHTML = (msgs.length ? msgs.map(function (m) { return bubble(m, m.from_agent); }).join("") : '<div class="hint">손님이 들어왔어요. 인사를 건네 보세요.</div>') +
+          (st && st.over ? '<div class="rm-b sell" style="width:92%;align-self:center"><span class="k">⏰ 몰래 기간(' + e((st.m.body || {}).period) + ')이 ' + (st.days ? st.days + "일 전에 " : "오늘 ") + '끝났어요</span>손님 화면에 [일반 의뢰로 · 몰래 한 번 더 · 최저가 다시 확인 · 잠시 보류]가 떠 있어요. 손님이 고르면 여기로 알려 드려요.' + (st.days >= 3 ? '<br><b>며칠째 안 고르셨어요 — 전화로 한 번 여쭤보세요.</b>' : '') + '<br><small class="hint">광고는 손님이 일반 의뢰로 바꾼 뒤에 시작하세요.</small></div>' : '');
+        window.scrollTo(0, document.body.scrollHeight); };
       var send = function (kind, body) { return BALPUM.Room.send(me, cid, true, kind, body).then(load).then(draw).catch(function (er) { say(msgOf(er)); }); };
       draw(); BALPUM.Room.seen(cid).catch(function () {});
       $("rmBk").onclick = function () { showRooms(); };

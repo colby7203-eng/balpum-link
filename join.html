@@ -9,15 +9,23 @@
 <meta property="og:description" content="매물 추천 · 내 집 최저가 · 수리·이사 상담을 핸드폰으로 편하게">
 <meta property="og:image" content="app/icons/foot.png">
 <link rel="icon" href="app/icons/icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;800&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;800&family=Nanum+Pen+Script&family=Nanum+Brush+Script&family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
   :root{--navy:#1E2A78;--orange:#F97316;--ink:#0F172A;--muted:#64748B;--bg:#F3F5FA;--line:#E2E8F0}
   *{box-sizing:border-box}
   body{margin:0;font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--ink);word-break:keep-all;line-height:1.6}
   .w{max-width:480px;margin:0 auto;padding:28px 16px 40px}
-  .foot{width:84px;height:84px;border-radius:24px;display:block;margin:0 auto 10px;box-shadow:0 8px 22px rgba(0,0,0,.15)}
-  h1{text-align:center;font-size:26px;margin:0}
-  h1 span{font-family:'Nanum Pen Script',cursive;font-weight:400;color:var(--orange);font-size:34px}
+  .top{background:linear-gradient(150deg,#FFE27A,#FFC53D);margin:-28px -16px 0;padding:26px 16px 18px;text-align:center;border-radius:0 0 24px 24px}
+  .bpl{display:inline-flex;align-items:center;gap:.14em;line-height:.8;transform:rotate(-3deg);white-space:nowrap;color:#1E2A78;font-size:64px}
+  .bpl img{height:.95em;width:.95em;border-radius:.22em;box-shadow:0 .06em .18em rgba(90,61,0,.28);transform:rotate(-9deg)}
+  .bpl .k{font-family:'Nanum Brush Script','Noto Sans KR',sans-serif;-webkit-text-stroke:.028em currentColor}
+  .bpl .e{font-family:'Permanent Marker',cursive;font-size:.42em;align-self:flex-end;margin-bottom:.16em;color:#E0420C;transform:rotate(-4deg);display:inline-block}
+  .top .s{font-weight:800;color:#5A3D00;margin-top:8px}
+  .gifted{background:#fff;border-radius:14px;padding:10px 12px;margin-top:12px;font-weight:700;color:#1E2A78;display:none}
+  .step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;margin-right:6px}
+  details{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-top:10px;font-size:14px}
+  details summary{font-weight:800;cursor:pointer}
+  .copied{display:none;background:#ECFDF5;color:#065F46;border-radius:12px;padding:10px 12px;margin-top:8px;font-size:14px;font-weight:700}
   .who{background:var(--navy);color:#fff;border-radius:20px;padding:18px;margin:18px 0 12px;text-align:center}
   .who small{opacity:.8;font-size:13px}.who b{display:block;font-size:22px;margin:2px 0}.who .t{opacity:.9;font-size:14px}
   .code{background:#fff;border:2px dashed #94A3B8;border-radius:16px;text-align:center;padding:10px;margin:0 0 14px}
@@ -33,23 +41,32 @@
 </style>
 </head>
 <body><div class="w">
-  <img class="foot" src="app/icons/foot.png" alt="">
-  <h1>발품 <span>손님</span></h1>
+  <div class="top"><span class="bpl"><img src="app/icons/foot.png" alt=""><span class="k">발품</span><span class="e">TOUR</span></span>
+    <div class="s">부동산 손님 앱 · 손님은 무료</div><div class="gifted" id="gift"></div></div>
   <div class="who" id="who"><small>초대한 부동산</small><b id="ofc">불러오는 중…</b><div class="t" id="ofcT"></div></div>
   <div class="code"><small>초대 코드</small><b id="code">------</b></div>
 
-  <a class="btn or" id="apk" href="balpum-tour.apk" download>📱 안드로이드 앱 받기</a>
-  <a class="btn nv" id="web" href="app/">🌐 이 화면에서 바로 쓰기 (아이폰도 OK)</a>
+  <a class="btn or" id="web" href="app/"><span class="step" style="background:#fff;color:var(--orange)">1</span>바로 쓰기 (설치 없이 · 아이폰도 OK)</a>
+  <a class="btn wh" id="apk" href="balpum-tour.apk" download><span class="step">2</span>안드로이드 앱으로 받기</a>
+  <div class="copied" id="copied">📋 초대 코드를 복사해 두었어요. 앱을 깔고 열면 저절로 들어가요.</div>
 
   <div class="gift">
-    <div><i>🏠</i>골라 주는<br>매물</div><div><i>📊</i>내 집<br>최저가</div><div><i>🔧</i>수리·이사<br>상담</div>
+    <div><i>🏠</i>골라 주는<br>매물</div><div><i>📊</i>최저가<br>확인</div><div><i>🔧</i>수리·이사<br>상담</div>
   </div>
 
-  <div class="card"><b>📱 안드로이드</b>
-    <ol><li>[안드로이드 앱 받기] → 받은 파일 누르기 → 설치 (‘출처를 알 수 없는 앱’ 허용)</li>
-      <li>앱을 열고 <b>[🏠 초대받은 손님이에요]</b> → <b>[초대 코드로 처음 시작하기]</b></li>
-      <li>위의 초대 코드, 이름, 핸드폰 번호, 숫자 6자리를 적으면 끝</li></ol>
+  <div class="card"><b>📱 안드로이드 앱으로 받을 때</b>
+    <ol><li>[안드로이드 앱으로 받기] → 받은 파일 누르기 → 설치</li>
+      <li>앱을 열면 초대 코드가 <b>저절로</b> 들어가요. 이름 · 핸드폰 · 숫자 6자리만 적으면 끝</li></ol>
   </div>
+  <details><summary>🔒 설치가 막힐 때 (보안 경고가 떠요)</summary>
+    <ol>
+      <li><b>“Play 프로텍트에서 차단함”</b>이 뜨면 → [자세히] → <b>[무시하고 설치]</b></li>
+      <li><b>“출처를 알 수 없는 앱”</b>이 뜨면 → [설정] → 이 브라우저(크롬·삼성 인터넷) <b>허용</b> 켜기 → 뒤로 와서 [설치]</li>
+      <li>그래도 막히면 (삼성) 설정 → 보안 및 개인정보 보호 → <b>자동 차단기</b> 끄기 → 설치 뒤 다시 켜기</li>
+      <li>또는 Play 스토어 → 오른쪽 위 내 사진 → Play 프로텍트 → ⚙ → <b>앱 검사</b> 잠깐 끄기 → 설치 뒤 다시 켜기</li>
+    </ol>
+    <div class="hint">발품은 아직 Play 스토어에 올리기 전이라 경고가 떠요. 막히면 위의 <b>1번 바로 쓰기</b>가 제일 쉬워요.</div>
+  </details>
   <div class="card"><b>🍎 아이폰</b>
     <ol><li>[이 화면에서 바로 쓰기]를 누르면 코드가 들어간 채로 열려요</li>
       <li>이름 · 핸드폰 · 숫자 6자리를 적고 시작</li>
@@ -62,7 +79,15 @@
 <script>
 (function(){
   var q = new URLSearchParams(location.search), c = String(q.get("c") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6), v = q.get("v") || "";
-  v = /^(qr|sms|kakao)$/.test(v) ? v : "";
+  v = /^(qr|sms|kakao|gift)$/.test(v) ? v : "";
+  var from = String(q.get("from") || "").slice(0, 20);
+  if (v === "gift") { var g = document.getElementById("gift"); g.style.display = "block"; g.textContent = "🎁 " + (from ? from + "님이 " : "") + "직빵 young call 을 선물했어요 — 동네 친구 샘이랑 영어 수다"; }
+  document.getElementById("apk").addEventListener("click", function () {
+    var t = "발품초대:" + c + (v ? "/" + v : "");
+    var ok = function () { document.getElementById("copied").style.display = "block"; };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(ok, function () {}); return; } } catch (er) {}
+    try { var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); if (document.execCommand("copy")) ok(); ta.remove(); } catch (er) {}
+  });
   document.getElementById("code").textContent = c || "------";
   document.getElementById("web").href = "app/?join=" + encodeURIComponent(c) + (v ? "&v=" + v : "");
   var ofc = document.getElementById("ofc"), t = document.getElementById("ofcT");
