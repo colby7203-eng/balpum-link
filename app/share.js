@@ -146,13 +146,20 @@
         var b = p.body || {};
         return '<div class="sh-p"><div class="pt"><span class="sh-k ' + (p.kind === "cust" ? "c" : "i") + '">' + (p.kind === "cust" ? "🙋 손님 있어요" : "🏠 물건 있어요") + '</span><span class="sh-st ' + stCls(p.status) + '">' + e(p.status) + ' · ' + when(p.created_at) + '</span></div>' +
           '<div class="t">' + e(p.title) + '</div><div class="d">' + detail(p) + '</div>' +
-          '<div class="o">🏢 ' + e(p.office || "부동산") + ' ' + stars(p.score) + ' ' + manner(p.mn, p.badge) + (p.reqs ? ' · 신청 ' + e(p.reqs) : '') + '</div>' +
-          '<div class="sh-btns">' + (p.mine ? '<span class="hint" style="margin:0">내 글이에요 · [내 글 · 신청]에서 관리</span>'
+          '<div class="o">🏢 ' + e(p.office || "부동산") + ' ' + stars(p.score) + ' ' + manner(p.mn, p.badge) + (p.kind !== "cust" && p.reqs ? ' · 신청 ' + e(p.reqs) : '') + '</div>' +
+          (p.kind === "cust" ? '<div class="sr-hot" style="display:flex;gap:8px;align-items:center;background:#EEF1FB;border-radius:12px;padding:7px 10px;font-size:13.5px"><b style="font-family:\'Nanum Brush Script\',sans-serif;font-size:22px;font-weight:400;color:#E0420C">' + e(p.rooms || 0) + '곳</b><span>이 물건을 보여 주려고 대화방을 열었어요 (5곳까지)</span></div>' : '') +
+          '<div class="sh-btns">' + (p.mine ? (p.kind === "cust" ? '<button type="button" class="pr" data-rooms="' + e(p.id) + '">💬 같이 보기 방 ' + e(p.rooms || 0) + '곳 보기</button>' : '<span class="hint" style="margin:0">내 글이에요 · [내 글 · 신청]에서 관리</span>')
+            : p.kind === "cust" ? (p.my_room ? '<button type="button" class="pr" data-myroom="' + e(p.my_room) + '">💬 내 대화방 열기</button>' : p.status === "끝" ? '' : '<button type="button" class="pr" data-open="' + e(p.id) + '">🏠 우리 물건 있어요 · 대화방 열기</button>') + (p.tel && p.my_req === "같이 하기" ? '<a class="ok" href="tel:' + e(String(p.tel).replace(/[^\d+]/g, "")) + '">📞 ' + e(p.tel) + '</a>' : '')
             : p.my_req === "같이 하기" ? (p.tel ? '<a class="ok" href="tel:' + e(String(p.tel).replace(/[^\d+]/g, "")) + '">📞 ' + e(p.tel) + '</a>' : '') + '<span class="hint" style="margin:0">같이 하기로 했어요</span>'
             : p.my_req === "신청" ? '<span class="hint" style="margin:0">신청했어요 · 답을 기다리는 중</span>'
             : p.status === "끝" ? '' : '<button type="button" class="pr" data-req="' + e(p.id) + '">🤝 같이 하기 신청</button>') + '</div>' +
           '<div id="rq' + e(p.id) + '"></div></div>';
       }).join("") : '<div class="card"><div class="hint" style="margin:0">아직 ' + e(S.me.dong) + ' 공유방에 글이 없어요. 첫 글을 올려 보세요.<br>자기 물건 · 자기 손님 거래는 네이버 · 직방 · 다방으로 충분해요. 여기는 <b>같이 하면 되는 것</b>만 올려요.</div></div>';
+      each("[data-rooms]", function (b) { b.onclick = function () { showShareRooms(+b.getAttribute("data-rooms")); }; });
+      each("[data-myroom]", function (b) { b.onclick = function () { showShareRoom(+b.getAttribute("data-myroom")); }; });
+      each("[data-open]", function (b) { b.onclick = function () { var id = b.getAttribute("data-open"), box = $("rq" + id);
+        box.innerHTML = '<div class="sh-rq"><div class="hint" style="margin:0">글쓴 부동산과 <b>둘만</b> 쓰는 방이 열려요. 손님 조건이 첫 줄에 저절로 올라가요. 전화번호는 손님 쪽이 집을 고르고 [같이 하기]를 누르면 보여요.</div><label for="ro' + id + '">첫 한마디 (비워도 돼요)</label><input id="ro' + id + '" placeholder="예) 조건 맞는 투룸 2개 있어요"><div class="sh-btns"><button type="button" class="pr" id="rg' + id + '">대화방 열기</button></div></div>';
+        $("rg" + id).onclick = function () { BALPUM.Share.roomOpen(+id, $("ro" + id).value.trim()).then(function (rid) { say("대화방을 열었어요"); showShareRoom(+String(rid).replace(/"/g, "")); }).catch(function (er) { say(msgOf(er)); }); }; }; });
       each("[data-req]", function (b) { b.onclick = function () { var id = b.getAttribute("data-req"), box = $("rq" + id);
         box.innerHTML = '<div class="sh-rq"><label for="rm' + id + '">한마디 (예: 매수 손님 있어요, 대출 안내 제가 할게요)</label><textarea id="rm' + id + '" rows="2" enterkeyhint="send"></textarea><div class="sh-btns"><button type="button" class="pr" id="rs' + id + '">신청 보내기</button></div></div>';
         $("rs" + id).onclick = function () { BALPUM.Share.req(+id, $("rm" + id).value.trim()).then(function () { say("신청했어요. 글쓴 사무소가 [같이 하기]를 누르면 전화번호가 보여요."); feedPage(); }).catch(function (er) { say(msgOf(er)); }); }; }; });
@@ -160,9 +167,9 @@
   }
 
   /* ---------- 글 올리기 ---------- */
-  function postPage(kind) {
-    var P = { deal: "" }, cust = kind === "cust";
-    app(head() + '<div class="card"><div class="sect" style="margin-top:0">' + (cust ? "🙋 이런 손님 있어요" : "🏠 이런 물건 있어요") + '</div>' +
+  function postPage(kind, ed) {
+    var b0 = (ed && ed.body) || {}, P = { deal: b0.deal || "" }, cust = kind === "cust";
+    app(head() + '<div class="card"><div class="sect" style="margin-top:0">' + (ed ? "✏️ 글 고치기 · " : "") + (cust ? "🙋 이런 손님 있어요" : "🏠 이런 물건 있어요") + '</div>' +
       '<label>거래</label><div class="rm-pick" id="shK">' + (cust ? ["매매", "전세", "월세", "상가·사무실"] : ["매매", "전세", "월세", "상가·사무실"]).map(function (t) { return '<button type="button" data-v="' + t + '" style="border:1px solid #CBD5E1;background:#fff;border-radius:999px;padding:8px 12px;font:600 14px \'Noto Sans KR\',sans-serif;margin:0 6px 6px 0">' + t + '</button>'; }).join("") + '</div>' +
       '<label for="shT">제목 *</label><input id="shT" placeholder="' + (cust ? "예) 검암역 투룸 전세 찾는 신혼부부" : "예) 검암동 신축 투룸 전세 2억") + '">' +
       (cust ? '<label for="sh1">지역 · 조건</label><input id="sh1" placeholder="예) 검암역 도보 10분, 주차 필수"><label for="sh2">방 · 크기</label><input id="sh2" placeholder="예) 방2 이상"><label for="sh3">예산</label><input id="sh3" placeholder="예) 전세 2억 안쪽, LH 가능"><label for="sh4">입주 시기</label><input id="sh4" placeholder="예) 2월 말">'
@@ -171,11 +178,15 @@
       '<div class="hint">손님 이름 · 전화번호는 올리지 마세요. 같이 하기가 되면 사무소끼리 전화로 이어 가요.</div>' +
       '<button class="btn" id="shGo">올리기</button><button class="btn ghost" id="shCc">취소</button></div>');
     bindHead();
+    if (ed) { var sv = function (id, v) { if ($(id)) $(id).value = v || ""; }; sv("shT", ed.title); sv("sh1", cust ? b0.area : b0.where); sv("sh2", b0.room); sv("sh3", cust ? b0.budget : b0.price); sv("sh4", b0.when); sv("sh5", b0.memo);
+      each("#shK button", function (x) { var on = x.getAttribute("data-v") === P.deal; x.style.background = on ? "#1E2A78" : "#fff"; x.style.color = on ? "#fff" : ""; });
+      $("shGo").textContent = "고치기" + (cust ? " (열린 방마다 '조건이 바뀌었어요'가 가요)" : ""); }
     each("#shK button", function (b) { b.onclick = function () { P.deal = b.getAttribute("data-v"); each("#shK button", function (x) { var on = x === b; x.style.background = on ? "#1E2A78" : "#fff"; x.style.color = on ? "#fff" : ""; }); }; });
     $("shCc").onclick = function () { S.tab = "feed"; render(); };
     $("shGo").onclick = function () { var v = function (id) { return $(id).value.trim(); }, t = v("shT"); if (!t) { say("제목을 적어 주세요."); return; }
       var body = cust ? { deal: P.deal, area: v("sh1"), room: v("sh2"), budget: v("sh3"), when: v("sh4"), memo: v("sh5") } : { deal: P.deal, where: v("sh1"), room: v("sh2"), price: v("sh3"), when: v("sh4"), memo: v("sh5") };
       var b = this; b.disabled = true;
+      if (ed) { BALPUM.Share.postEdit(ed.id, t, body).then(function () { say("글을 고쳤어요"); S.tab = "my"; render(); }).catch(function (er) { b.disabled = false; say(msgOf(er)); }); return; }
       BALPUM.Share.post(kind, t, body).then(function () { say("올렸어요. " + S.me.dong + " 부동산들에게 보여요."); S.tab = "feed"; render(); }).catch(function (er) { b.disabled = false; say(msgOf(er)); }); };
   }
 
@@ -231,8 +242,9 @@
               (p.status !== "끝" ? protectBox(q, p.kind === "item") : '') + '</div>';      // 물건 글: 상대 손님이 우리에게 직접 올 수 있어요
           }).join("") : '<div class="hint" style="margin:0">아직 신청이 없어요.</div>') + '</div>' +
           (p.status === "끝" ? acc.filter(function (q) { return rated.indexOf(q.from) < 0; }).map(function (q) { return rateBox(p.id, q.from, q.office || "부동산"); }).join("") : '') +
-          '<div class="sh-btns">' + (p.status !== "끝" ? '<button type="button" data-end="' + e(p.id) + '">✅ 거래 끝 (점수 주기)</button>' : '') + '<button type="button" data-del="' + e(p.id) + '">🗑 글 내리기</button></div></div>';
+          '<div class="sh-btns">' + (p.kind === "cust" ? '<button type="button" class="pr" data-rooms="' + e(p.id) + '">💬 같이 보기 방</button>' : '') + '<button type="button" data-edit="' + e(p.id) + '">✏️ 고치기</button>' + (p.status !== "끝" ? '<button type="button" data-end="' + e(p.id) + '">✅ 거래 끝 (점수 주기)</button>' : '') + '<button type="button" data-del="' + e(p.id) + '">🗑 글 내리기</button></div></div>';
       }).join("") : '<div class="hint">아직 올린 글이 없어요.</div>';
+      h += '<div id="shMyRooms"></div>';
       h += '<div class="rm-sect" style="font-weight:800;margin:14px 2px 8px">🤝 내가 한 신청 ' + sent.length + '</div>';
       h += sent.length ? sent.map(function (q) {
         return '<div class="sh-p"><div class="pt"><span class="sh-k ' + (q.kind === "cust" ? "c" : "i") + '">' + (q.kind === "cust" ? "🙋 손님" : "🏠 물건") + '</span><span class="sh-st ' + (q.status === "같이 하기" ? "go" : "") + '">' + e(q.status) + '</span></div>' +
@@ -245,6 +257,12 @@
       each("[data-end]", function (b) { b.onclick = function () { BALPUM.Share.status(+b.getAttribute("data-end"), "끝").then(function () { say("거래 끝! 같이 한 사무소에게 칭찬 점수 · 매너를 주세요."); myPage(); }).catch(function (er) { say(msgOf(er)); }); }; });
       each("[data-del]", function (b) { b.onclick = function () { if (!confirm("이 글을 내릴까요? 신청 · 점수도 같이 지워져요.")) return; BALPUM.Share.del(+b.getAttribute("data-del")).then(function () { say("내렸어요."); myPage(); }).catch(function (er) { say(msgOf(er)); }); }; });
       bindRate(); bindProtect();
+      each("[data-rooms]", function (b) { b.onclick = function () { showShareRooms(+b.getAttribute("data-rooms")); }; });
+      each("[data-edit]", function (b) { b.onclick = function () { var p = posts.filter(function (x) { return String(x.id) === b.getAttribute("data-edit"); })[0]; if (p) postPage(p.kind, p); }; });
+      BALPUM.Share.myRooms().then(function (rs) { var el = $("shMyRooms"); if (!el || !rs.length) return;
+        el.innerHTML = '<div class="rm-sect" style="font-weight:800;margin:14px 2px 8px">🏠 내가 연 대화방 ' + rs.length + '</div>' + rs.map(function (r) {
+          return '<button type="button" class="sh-p" data-myroom2="' + r.id + '" style="width:100%;text-align:left;font:inherit;cursor:pointer' + (r.status === "열림" ? '' : ';opacity:.55') + '"><div class="pt"><span class="sh-k c">🙋 손님 글</span><span class="sh-st">' + e(r.status) + '</span>' + (r.unread ? '<span class="pill" style="background:#DC2626;color:#fff;border-radius:999px;padding:0 8px;font-size:12px;font-weight:800">새 말 ' + r.unread + '</span>' : '') + '</div><div class="t">' + e(r.title) + '</div><div class="o">🏢 ' + e(r.office || "") + ' ' + manner(r.mn, r.badge) + ' · 고른 집 ' + (r.picks || 0) + '</div></button>'; }).join("");
+        each("[data-myroom2]", function (b) { b.onclick = function () { showShareRoom(+b.getAttribute("data-myroom2")); }; }); }).catch(function () {});
       BALPUM.Share.me().then(function (m) { if (!m) return; S.me = m; var hd = document.querySelector(".sh-hd .mine"), tmp = document.createElement("div"); tmp.innerHTML = head(); var nw = tmp.querySelector(".sh-hd .mine"); if (hd && nw) hd.innerHTML = nw.innerHTML; }).catch(function () {});
     }).catch(function (er) { if ($("shM")) $("shM").innerHTML = '<div class="err">' + e(msgOf(er)) + '</div>'; });
   }
@@ -280,5 +298,208 @@
     each(".sh-calc input, .sh-radio input", function (c) { c.onchange = calc; }); $("shSum").oninput = calc; calc();
   }
 
-  window.SHARE_ROUTE = function (st) { if (st.view === "share") { showShare(true); return true; } return false; };
+  /* =================================================================
+     v1.6 🤝 같이 보기 방 — 손님 있어요 글에 물건 쪽 부동산마다 둘만 쓰는 방 (한 글에 5곳까지)
+     ================================================================= */
+  var R = { timer: null, rid: 0, data: null };
+  function stopRoom() { clearInterval(R.timer); R.timer = null; }
+  function nav2(v, id) { if (typeof nav === "function") nav(v, id); window.scrollTo(0, 0); }
+  function condText(b) { b = b || {}; return [b.deal, b.area, b.room, b.budget, b.when].filter(Boolean).join(" · ") + (b.memo ? " · " + b.memo : ""); }
+  function addrKey(t) { return String(t || "").toLowerCase().replace(/[^0-9a-z가-힣]/g, ""); }
+  function hm(t) { var d = new Date(t); return (d.getMonth() + 1) + "/" + d.getDate() + " " + d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); }
+  var RCSS = '<style>' +
+    '.sr-row{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:10px 12px;margin-bottom:8px;cursor:pointer;width:100%;text-align:left;font:inherit;color:#0F172A}' +
+    '.sr-row.closed{opacity:.55}.sr-row .av{width:40px;height:40px;border-radius:20px;background:#FFF4EC;color:#E0420C;display:grid;place-items:center;font-weight:800;flex:none}' +
+    '.sr-row .tx{flex:1;min-width:0}.sr-row small{display:block;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.sr-nb{background:#DC2626;color:#fff;border-radius:999px;font-size:12px;font-weight:800;padding:1px 8px}' +
+    '.sr-hot{display:flex;gap:8px;align-items:center;background:#EEF1FB;border-radius:12px;padding:8px 10px;font-size:13.5px}.sr-hot b{font-family:"Nanum Brush Script",sans-serif;font-size:24px;font-weight:400;color:#E0420C;line-height:1}' +
+    '.sr-chat{display:flex;flex-direction:column;gap:8px;padding:4px 0 10px}' +
+    '.sr-b{max-width:84%;border-radius:14px;padding:8px 11px;font-size:14.5px;line-height:1.5;background:#fff;border:1px solid #E2E8F0;align-self:flex-start;word-break:break-word}' +
+    '.sr-b.me{align-self:flex-end;background:#1E2A78;color:#fff;border:0}.sr-b small.t{display:block;font-size:11px;opacity:.6;margin-top:2px}' +
+    '.sr-b.gone{background:transparent;border:1px dashed #CBD5E1;color:#94A3B8;font-size:13px}' +
+    '.sr-sys{align-self:stretch;background:#EEF1FB;border:1px dashed #1E2A78;border-radius:12px;padding:8px 11px;font-size:13.5px;color:#1E2A78}' +
+    '.sr-ls{align-self:stretch;background:#fff;border:1.5px solid #E2E8F0;border-radius:14px;padding:9px 11px;display:grid;gap:3px}.sr-ls.mine{border-color:#C7D2FE}' +
+    '.sr-ls.pick{border-color:#15803D;background:#ECFDF5}.sr-ls .pr{font-size:17px;font-weight:800}.sr-ls label{display:flex;gap:8px;align-items:center;font-weight:700;font-size:13.5px;cursor:pointer}.sr-ls input{width:20px;height:20px;accent-color:#15803D}' +
+    '.sr-plan{align-self:stretch;background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:14px;padding:9px 11px;font-size:14px}' +
+    '.sr-act{display:flex;gap:4px;margin-top:4px}.sr-act button{border:1px solid #CBD5E1;background:#fff;border-radius:999px;padding:2px 9px;font:700 11.5px "Noto Sans KR",sans-serif;cursor:pointer;color:#334155}' +
+    '.sr-b.me .sr-act button{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35)}' +
+    '.sr-in{position:sticky;bottom:var(--kb,0px);background:#F1F5F9;padding:8px 0;display:flex;gap:8px;align-items:flex-end;z-index:10}' +
+    '.sr-in textarea{flex:1;min-width:0;border:1px solid #CBD5E1;border-radius:18px;padding:9px 13px;font:16px "Noto Sans KR",sans-serif;resize:none;max-height:40vh}' +
+    '.sr-in button{width:46px;height:46px;border-radius:23px;border:0;background:#1E2A78;color:#fff;font-size:18px;cursor:pointer;flex:none}' +
+    '.sr-q{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.sr-q button{border:1px solid #CBD5E1;background:#fff;border-radius:999px;padding:7px 12px;font:700 13px "Noto Sans KR",sans-serif;cursor:pointer}' +
+    '.sr-q .ok{background:#15803D;color:#fff;border-color:#15803D}.sr-q .no{color:#B91C1C}' +
+    '.sp-slot{display:grid;grid-template-columns:58px 1fr auto;gap:10px;align-items:center;background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:10px 12px;margin-bottom:8px}' +
+    '.sp-slot .hh{font-weight:800;color:#1E2A78;font-size:16px;font-variant-numeric:tabular-nums}.sp-slot small{display:block;color:#64748B}.sp-slot.dup{border-color:#F59E0B;background:#FFFBEB}' +
+    '.sp-mv{display:grid;gap:3px}.sp-mv button{border:1px solid #CBD5E1;background:#F8FAFC;border-radius:8px;width:32px;height:24px;cursor:pointer}' +
+    '</style>';
+  function rapp(h) { app(RCSS + h); }
+  function rtop(title, back) { return '<div class="top"><button class="back" id="srBk">← ' + e(back || "공유방") + '</button><h2>' + title + '</h2></div>'; }
+
+  // 글쓴 쪽: 한 글의 방 모음
+  window.showShareRooms = function (pid, fromHist) {
+    stopRoom(); if (!fromHist) nav2("shrooms", pid);
+    rapp(rtop("💬 같이 보기 방") + '<div class="loading">불러오는 중…</div>');
+    $("srBk").onclick = function () { S.tab = "my"; showShare(); };
+    Promise.all([BALPUM.Share.rooms(+pid), BALPUM.Share.my()]).then(function (a) {
+      var rooms = a[0] || [], p = ((a[1] || {}).posts || []).filter(function (x) { return String(x.id) === String(pid); })[0] || {};
+      var open = rooms.filter(function (r) { return r.status === "열림"; }).length, picks = rooms.reduce(function (s, r) { return s + (+r.picks || 0); }, 0);
+      rapp(rtop("💬 같이 보기 방") +
+        '<div class="sh-p"><div class="t">' + e(p.title || "") + '</div><div class="d">' + e(condText(p.body)) + '</div>' +
+        '<div class="sr-hot"><b>' + open + '곳</b><span>이 물건을 보여 주려고 방을 열었어요 (5곳까지)</span></div>' +
+        '<div class="sh-btns"><button type="button" id="srEdit">✏️ 조건 고치기</button>' + (picks ? '<button type="button" class="pr" id="srPlan">📅 집 보기 순서표 (' + picks + '집)</button>' : '') + '</div></div>' +
+        (rooms.length ? rooms.map(function (r) {
+          var l = r.last || {}, lt = l.deleted ? "지운 말이에요" : l.kind === "listing" ? "🏠 매물 " + ((l.body || {}).pr || "") : l.kind === "plan" ? "📅 순서표" : l.kind === "cond" ? "방을 열었어요" : ((l.body || {}).text || "");
+          return '<button type="button" class="sr-row' + (r.status === "열림" ? "" : " closed") + '" data-room="' + r.id + '"><span class="av">' + e(String(r.office || "?").slice(0, 1)) + '</span><span class="tx"><b>' + e(r.office || "부동산") + '</b> ' + manner(r.mn, r.badge) +
+            '<small>' + (r.status === "열림" ? "" : "닫힌 방 · ") + '매물 ' + (r.items || 0) + ' · 고른 집 ' + (r.picks || 0) + (r.joined ? ' · 🤝 같이 하기' : '') + ' · ' + e(lt) + '</small></span>' + (r.unread ? '<span class="sr-nb">' + r.unread + '</span>' : '') + '</button>'; }).join("")
+          : '<div class="card"><div class="hint" style="margin:0">아직 방을 연 부동산이 없어요. 우리 동네 부동산이 "우리 물건 있어요"를 누르면 여기 생기고 알림이 와요.</div></div>'));
+      $("srBk").onclick = function () { S.tab = "my"; showShare(); };
+      each("[data-room]", function (b) { b.onclick = function () { showShareRoom(+b.getAttribute("data-room")); }; });
+      $("srEdit").onclick = function () { postPage("cust", p); };
+      if ($("srPlan")) $("srPlan").onclick = function () { planPage(+pid); };
+    }).catch(function (er) { say(msgOf(er)); });
+  };
+
+  // 방 하나
+  window.showShareRoom = function (rid, fromHist) {
+    stopRoom(); if (!fromHist) nav2("shroom", rid);
+    R.rid = rid;
+    rapp(rtop("🤝 같이 보기 방") + '<div class="loading">불러오는 중…</div>');
+    $("srBk").onclick = function () { stopRoom(); history.back(); };
+    var draw = function (d) {
+      R.data = d; var cust = d.side === "cust", open = d.status === "열림", o = d.other || {};
+      var picks = d.msgs.filter(function (m) { return m.kind === "listing" && m.pick && !m.deleted; }).length;
+      rapp(rtop("🤝 " + e(o.office || "같이 보기 방"), cust ? "방 모음" : "공유방") +
+        '<div class="sh-p" style="gap:4px"><div class="o">🏢 ' + e(o.office || "") + ' ' + stars(o.score) + ' ' + manner(o.mn, o.badge) + (o.tel ? ' · <a href="tel:' + e(String(o.tel).replace(/[^\d+]/g, "")) + '">📞 ' + e(o.tel) + '</a>' : '') + '</div>' +
+        '<div class="d"><b>' + e(d.post.title) + '</b> · ' + (cust ? "우리 손님 글" : "상대 손님 글") + (open ? '' : ' · <b style="color:#B91C1C">닫힌 방</b>') + (d.joined ? ' · <b style="color:#15803D">🤝 같이 하기</b>' : '') + '</div></div>' +
+        '<div class="sr-chat" id="srL">' + d.msgs.map(function (m) { return msgHTML(m, cust); }).join("") + '</div>' +
+        (open ? '<div class="sr-q">' + (cust ? (picks && !d.joined ? '<button type="button" class="ok" id="srJoin">🤝 같이 하기 (고른 집 ' + picks + ')</button>' : '') + (picks ? '<button type="button" id="srPlan2">📅 순서표</button>' : '')
+              : '<button type="button" id="srLs">🏠 매물장에서 보내기</button><button type="button" id="srLw">✍️ 매물 직접 적기</button>') +
+            '<button type="button" class="no" id="srClose">방 닫기</button></div><div id="srX"></div>' +
+            '<div class="sr-in"><textarea id="srT" rows="1" enterkeyhint="send" placeholder="' + (cust ? "물건 쪽 부동산에게" : "손님 쪽 부동산에게") + '"></textarea><button type="button" id="srS" aria-label="보내기">➤</button></div>'
+          : '<div class="hint">닫힌 방이에요. 물건 쪽 부동산이 다시 [우리 물건 있어요]를 누르면 다시 열려요.</div>'));
+      $("srBk").onclick = function () { stopRoom(); if (cust) showShareRooms(d.post.id); else { S.tab = "my"; showShare(); } };
+      bindMsgs(d);
+      if (!open) return;
+      var send = function () { var t = $("srT").value.trim(); if (!t) return; $("srT").value = ""; BALPUM.Share.roomSend(rid, "text", { text: t }).then(reload).catch(function (er) { say(msgOf(er)); }); };
+      $("srS").onclick = send;
+      $("srT").addEventListener("keydown", function (ev) { if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing && ev.keyCode !== 229) { ev.preventDefault(); send(); } });
+      $("srClose").onclick = function () { if (!confirm("이 방을 닫을까요? 상대에게 정중하게 알려요.")) return; BALPUM.Share.roomClose(rid).then(function () { say("방을 닫았어요."); reload(); }).catch(function (er) { say(msgOf(er)); }); };
+      if ($("srJoin")) $("srJoin").onclick = function () { BALPUM.Share.roomJoin(rid).then(function () { say("같이 하기가 됐어요. 전화번호가 보이고 보호기간 3개월이 시작돼요."); reload(); }).catch(function (er) { say(msgOf(er)); }); };
+      if ($("srPlan2")) $("srPlan2").onclick = function () { stopRoom(); planPage(d.post.id); };
+      if ($("srLs")) $("srLs").onclick = function () { listingPicker(rid); };
+      if ($("srLw")) $("srLw").onclick = function () { listingForm(rid, null); };
+      window.scrollTo(0, document.body.scrollHeight);
+    };
+    var reload = function () { return BALPUM.Share.room(rid).then(function (d) { if (R.rid === rid) draw(d); }); };
+    R.reload = reload;
+    BALPUM.Share.room(rid).then(draw).catch(function (er) { say(msgOf(er)); S.tab = "my"; showShare(true); });
+    R.timer = setInterval(function () { if (!$("srL") || R.rid !== rid) { stopRoom(); return; }
+      var n = (R.data && R.data.msgs.length) || 0, last = R.data && R.data.msgs[n - 1];
+      BALPUM.Share.room(rid).then(function (d) { var l2 = d.msgs[d.msgs.length - 1]; if (d.msgs.length !== n || (l2 && last && (l2.id !== last.id || l2.edited !== last.edited))) { var typing = $("srT") && $("srT").value; draw(d); if (typing && $("srT")) $("srT").value = typing; } }).catch(function () {}); }, 12000);
+  };
+  function msgHTML(m, cust) {
+    var b = m.body || {}, t = '<small class="t">' + hm(m.at) + (m.edited ? ' · 고침' : '') + '</small>';
+    var act = function (edit) { return m.mine && !m.deleted ? '<div class="sr-act">' + (edit ? '<button type="button" data-med="' + m.id + '">✏️ 고치기</button>' : '') + '<button type="button" data-mdl="' + m.id + '">🗑 지우기</button></div>' : ''; };
+    if (m.deleted) return '<div class="sr-b gone' + (m.mine ? " me" : "") + '" style="align-self:' + (m.mine ? "flex-end" : "flex-start") + '">' + (m.mine ? "내가 지운 말이에요" : "상대가 지운 말이에요") + '</div>';
+    if (m.kind === "cond") return '<div class="sr-sys">🤖 <b>저절로 올라간 첫 줄</b><br>손님 조건: ' + e(b.title || "") + (condText(b) ? ' · ' + e(condText(b)) : '') + '<br>이 조건에 맞는 물건 있나요?</div>';
+    if (m.kind === "sys") return '<div class="sr-sys">' + e(b.text || "") + (b.cond ? '<br>' + e(b.cond.title || "") + ' · ' + e(condText(b.cond)) : '') + '</div>';
+    if (m.kind === "listing") return '<div class="sr-ls' + (m.pick ? " pick" : "") + (m.mine ? " mine" : "") + '"><span class="sh-k i" style="justify-self:start">🏠 매물' + (m.pick ? ' · ✅ 손님에게 보여 줄 집' : '') + '</span><div class="pr">' + e(b.pr || "") + '</div><div>' + e([b.addr, b.room].filter(Boolean).join(" · ")) + '</div>' + (b.memo ? '<div class="hint" style="margin:0">' + e(b.memo) + '</div>' : '') +
+      (cust ? '<label><input type="checkbox" data-pick="' + m.id + '"' + (m.pick ? " checked" : "") + '> 손님에게 보여 줄게요</label>' : '') + t + act(true) + '</div>';
+    if (m.kind === "plan") return '<div class="sr-plan">📅 <b>' + e(b.day || "") + ' 집 보기 순서표</b>' + (b.items || []).map(function (x) { return '<div>· <b>' + e(x.time || "") + '</b> ' + e(x.addr || "") + ' ' + e(x.pr || "") + ' <small class="hint" style="margin:0">(전체 ' + e(b.total) + '집 중 ' + e(x.no || "") + '번째)</small></div>'; }).join("") +
+      (cust ? '' : '<div class="hint" style="margin:2px 0 0">앞 집이 끝나면 손님 쪽이 "지금 출발해요"를 보내요. 문 열어 둘 준비를 해 주세요.</div>') + t + act(false) + '</div>';
+    return '<div class="sr-b' + (m.mine ? " me" : "") + '">' + e(b.text || "").replace(/\n/g, "<br>") + t + act(true) + '</div>';
+  }
+  function bindMsgs(d) {
+    each("[data-pick]", function (c) { c.onchange = function () { BALPUM.Share.roomPick(+c.getAttribute("data-pick"), c.checked).then(function () { say(c.checked ? "손님에게 보여 줄 집으로 골랐어요" : "고른 것을 뺐어요"); R.reload(); }).catch(function (er) { c.checked = false; say(msgOf(er)); }); }; });
+    each("[data-mdl]", function (b) { b.onclick = function () { if (!confirm("이 말을 지울까요?")) return; BALPUM.Share.roomDel(+b.getAttribute("data-mdl")).then(function () { R.reload(); }).catch(function (er) { say(msgOf(er)); }); }; });
+    each("[data-med]", function (b) { b.onclick = function () { var id = +b.getAttribute("data-med"), m = d.msgs.filter(function (x) { return x.id === id; })[0]; if (!m) return;
+      if (m.kind === "listing") { listingForm(d.id, m); return; }
+      var box = b.closest(".sr-b"); box.innerHTML = '<textarea id="srE" class="grow" rows="2" style="width:100%;color:#0F172A">' + e((m.body || {}).text || "") + '</textarea><div class="sr-act"><button type="button" id="srEs">저장</button><button type="button" id="srEc">취소</button></div>';
+      $("srE").focus();
+      $("srEs").onclick = function () { var t = $("srE").value.trim(); if (!t) return; BALPUM.Share.roomEdit(id, { text: t }).then(function () { say("고쳤어요"); R.reload(); }).catch(function (er) { say(msgOf(er)); }); };
+      $("srEc").onclick = function () { R.reload(); }; }; });
+  }
+  // 물건 쪽: 매물장에서 골라 보내기
+  function listingPicker(rid) {
+    var X = $("srX"); X.innerHTML = '<div class="card"><div class="hint" style="margin-top:0">매물 불러오는 중…</div></div>';
+    BALPUM.API.appList().then(function (items) {
+      var act = (items || []).filter(function (x) { return !/계약|보류|휴지/.test(String(x.status || "")); }).slice(0, 80);
+      X.innerHTML = '<div class="card"><input id="srQ" placeholder="찾기 (예: 투룸, 검암동)"><div id="srLl" style="max-height:260px;overflow:auto;margin-top:8px"></div>' +
+        '<label for="srLm">한마디</label><input id="srLm" placeholder="예) LH 가능, 즉시 입주"><div class="hint">동·호수까지 보내도 같이 하기 전에는 이 방 두 사무소만 봐요.</div></div>';
+      var list = function () { var q = $("srQ").value.replace(/\s/g, ""); $("srLl").innerHTML = act.filter(function (x) { return !q || (x.name + x.location + x.room_structure + x.deal_type).replace(/\s/g, "").indexOf(q) >= 0; }).map(function (x) {
+        return '<div class="sr-row" data-l="' + e(x.id) + '" style="margin-bottom:6px"><span class="tx"><b>' + e(x.price || "") + ' <span class="hint" style="font-weight:400">' + e(x.deal_type || "") + '</span></b><small>' + e([x.room_structure, x.name].filter(Boolean).join(" · ")) + '</small></span><span>보내기 ›</span></div>'; }).join("") || '<div class="hint">매물이 없어요. [✍️ 매물 직접 적기]로 보내세요.</div>';
+        each("#srLl [data-l]", function (r) { r.onclick = function () { var x = act.filter(function (y) { return String(y.id) === r.getAttribute("data-l"); })[0]; if (!x) return;
+          BALPUM.Share.roomSend(rid, "listing", { lid: x.id, addr: [x.location, x.name].filter(Boolean).join(" "), pr: [x.deal_type, x.price].filter(Boolean).join(" "), room: x.room_structure || "", memo: $("srLm").value.trim() })
+            .then(function () { say("매물 카드를 보냈어요"); R.reload(); }).catch(function (er) { say(msgOf(er)); }); }; }); };
+      $("srQ").oninput = list; list();
+    }).catch(function () { listingForm(rid, null); });
+  }
+  function listingForm(rid, m) {
+    var b = (m && m.body) || {}, X = $("srX");
+    X.innerHTML = '<div class="card"><div class="sect" style="margin-top:0">' + (m ? "✏️ 매물 카드 고치기" : "✍️ 매물 직접 적기") + '</div>' +
+      '<label for="sfA">주소 · 이름 *</label><input id="sfA" value="' + e(b.addr || "") + '" placeholder="예) 검암동 이안홈타운 302호">' +
+      '<label for="sfP">가격 *</label><input id="sfP" value="' + e(b.pr || "") + '" placeholder="예) 전세 1억 9천">' +
+      '<label for="sfR">구조</label><input id="sfR" value="' + e(b.room || "") + '" placeholder="예) 방2 화1 · 22평">' +
+      '<label for="sfM">한마디</label><input id="sfM" value="' + e(b.memo || "") + '" placeholder="예) LH 가능">' +
+      '<div class="sh-btns" style="margin-top:8px"><button type="button" class="pr" id="sfGo">' + (m ? "고치기" : "보내기") + '</button><button type="button" id="sfX">닫기</button></div>' + (m ? '<div class="hint">고치면 손님 쪽이 골랐던 표시는 풀려요 (다시 골라야 해요).</div>' : '') + '</div>';
+    $("sfX").onclick = function () { X.innerHTML = ""; };
+    $("sfGo").onclick = function () { var nb = { lid: b.lid || "", addr: $("sfA").value.trim(), pr: $("sfP").value.trim(), room: $("sfR").value.trim(), memo: $("sfM").value.trim() };
+      if (!nb.addr || !nb.pr) { say("주소와 가격을 적어 주세요."); return; }
+      (m ? BALPUM.Share.roomEdit(m.id, nb) : BALPUM.Share.roomSend(rid, "listing", nb)).then(function () { say(m ? "고쳤어요" : "매물 카드를 보냈어요"); R.reload(); }).catch(function (er) { say(msgOf(er)); }); };
+    $("sfA").focus();
+  }
+
+  // 📅 집 보기 순서표 (손님 쪽) — 고른 집을 모아 하루 동선
+  var PL = { order: [], start: "14:00", gap: 30, day: "" };
+  function planPage(pid, fromHist) {
+    stopRoom(); if (!fromHist) nav2("shplan", pid);
+    rapp(rtop("📅 집 보기 순서표", "방 모음") + '<div class="loading">고른 집 모으는 중…</div>');
+    $("srBk").onclick = function () { showShareRooms(pid); };
+    BALPUM.Share.rooms(pid).then(function (rooms) {
+      rooms = rooms.filter(function (r) { return r.status === "열림" && r.picks; });
+      return Promise.all(rooms.map(function (r) { return BALPUM.Share.room(r.id).then(function (d) { return { r: r, d: d }; }); }));
+    }).then(function (all) {
+      var picks = [];
+      all.forEach(function (x) { x.d.msgs.forEach(function (m) { if (m.kind === "listing" && m.pick && !m.deleted) picks.push({ key: x.r.id + "_" + m.id, room: x.r.id, mid: m.id, office: x.r.office, addr: (m.body || {}).addr || "", pr: (m.body || {}).pr || "" }); }); });
+      PL.order = PL.order.filter(function (k) { return picks.some(function (p) { return p.key === k; }); });
+      picks.forEach(function (p) { if (PL.order.indexOf(p.key) < 0) PL.order.push(p.key); });
+      if (!PL.day) { var d = new Date(Date.now() + 864e5); PL.day = (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + "일월화수목금토"[d.getDay()] + ")"; }
+      var by = {}; picks.forEach(function (p) { by[p.key] = p; });
+      var tm = function (i) { var a = PL.start.split(":"), mm = (+a[0]) * 60 + (+a[1] || 0) + i * PL.gap; return Math.floor(mm / 60) + ":" + ("0" + (mm % 60)).slice(-2); };
+      var seen = {};
+      var draw = function () {
+        $("spL").innerHTML = PL.order.map(function (k, i) { var p = by[k], dk = addrKey(p.addr), dup = seen[dk] && seen[dk] !== k; seen[dk] = seen[dk] || k;
+          return '<div class="sp-slot' + (dup ? " dup" : "") + '"><span class="hh">' + tm(i) + '</span><span><b>' + e(p.addr) + '</b><small>' + e(p.office) + ' · ' + e(p.pr) + (dup ? ' · ⚠ 같은 집이 두 번 있어요' : '') + '</small></span><span class="sp-mv"><button type="button" data-u="' + i + '" aria-label="위로">▲</button><button type="button" data-d="' + i + '" aria-label="아래로">▼</button></span></div>'; }).join("") || '<div class="hint">각 방에서 "손님에게 보여 줄게요"를 체크하면 여기 모여요.</div>';
+        seen = {};
+        each("[data-u]", function (b) { b.onclick = function () { var i = +b.getAttribute("data-u"); if (i > 0) { var t = PL.order[i]; PL.order[i] = PL.order[i - 1]; PL.order[i - 1] = t; draw(); } }; });
+        each("[data-d]", function (b) { b.onclick = function () { var i = +b.getAttribute("data-d"); if (i < PL.order.length - 1) { var t = PL.order[i]; PL.order[i] = PL.order[i + 1]; PL.order[i + 1] = t; draw(); } }; });
+      };
+      rapp(rtop("📅 집 보기 순서표", "방 모음") +
+        '<div class="card"><div class="hint" style="margin-top:0">손님 쪽이 하루 동선을 짜요. 보내면 방마다 <b>자기 집 시간만</b> 가요. 다른 부동산 집 주소는 안 보여요.</div>' +
+        '<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:6px"><div><label for="spD">날짜</label><input id="spD" value="' + e(PL.day) + '"></div><div><label for="spS">시작</label><input id="spS" type="time" value="' + e(PL.start) + '"></div>' +
+        '<div><label for="spG">집마다</label><select id="spG">' + [20, 30, 40, 60].map(function (g) { return '<option value="' + g + '"' + (PL.gap === g ? " selected" : "") + '>' + g + '분</option>'; }).join("") + '</select></div></div></div>' +
+        '<div id="spL"></div><button class="btn" id="spGo">📨 순서표 보내기 (각 방에 저절로)</button><button class="btn ghost" id="spTour">🚶 답사로 지도 보기</button>');
+      $("srBk").onclick = function () { showShareRooms(pid); };
+      $("spD").oninput = function () { PL.day = this.value; };
+      $("spS").onchange = function () { PL.start = this.value || "14:00"; draw(); };
+      $("spG").onchange = function () { PL.gap = +this.value; draw(); };
+      draw();
+      $("spGo").onclick = function () { if (!PL.order.length) { say("고른 집이 없어요."); return; }
+        var items = PL.order.map(function (k, i) { var p = by[k]; return { room: p.room, mid: p.mid, time: tm(i), addr: p.addr, pr: p.pr, no: i + 1 }; });
+        BALPUM.Share.planSend(pid, PL.day, items).then(function (n) { say("순서표를 " + n + "곳 방에 보냈어요"); showShareRooms(pid); }).catch(function (er) { say(msgOf(er)); }); };
+      $("spTour").onclick = function () {
+        if (typeof startTourHome === "function") { try { localStorage.setItem("bp_tour_hint", JSON.stringify(PL.order.map(function (k) { return by[k].addr; }))); } catch (er) {} say("답사 화면에서 이 주소들로 순서를 넣어 보세요"); startTourHome(); }
+      };
+    }).catch(function (er) { say(msgOf(er)); });
+  }
+  window.showSharePlan = planPage;
+
+  window.SHARE_ROUTE = function (st) {
+    st = st || {}; stopRoom();
+    if (st.view === "share") { showShare(true); return true; }
+    if (st.view === "shrooms") { showShareRooms(+st.id, true); return true; }
+    if (st.view === "shroom") { showShareRoom(+st.id, true); return true; }
+    if (st.view === "shplan") { planPage(+st.id, true); return true; }
+    return false;
+  };
 })();

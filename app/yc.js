@@ -1,5 +1,5 @@
 /* =====================================================================
-   발품투어 매물장 v1.5 — 🎁 직빵 young call (동네 친구 샘이랑 영어 수다)
+   발품투어 매물장 v1.6 — 🎁 직빵 young call (동네 친구 샘이랑 영어 수다)
    · 위에 큰 단추 두 개: [🤙 샘이랑 수다] [🔁 통역 · 상황 연습]
    · 수다: ✏️ 원어민에게 어떻게 들리는지 · 🔊 · 🐢 · 📐 문법 구조 · ⭐ 저장 · 🧩 내가 만들기 · 🎯 오늘 표현
    · 통역: 🗣 마주 보고 통역 ([🇰🇷 내가 말하기] [🇺🇸 상대가 말하기] · 화면 크게) · 🎭 상황 연습 9가지 + 직접
@@ -30,17 +30,17 @@
     '.yc-bar{display:flex;align-items:center;gap:8px;margin:-14px -14px 10px;padding:10px 12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:15;box-shadow:0 2px 8px rgba(90,61,0,.12)}' +
     '.yc-bar .bk{border:0;background:rgba(30,42,120,.12);color:#1E2A78;border-radius:12px;padding:8px 11px;font:700 14px "Noto Sans KR",sans-serif;cursor:pointer;flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:2px}' +
     '.yc-bar .lg{flex:1;display:flex;justify-content:center;min-width:0}.yc-bar .ic{border:0;background:#fff;border-radius:12px;width:40px;height:40px;font-size:18px;cursor:pointer;flex:none;box-shadow:0 1px 3px rgba(0,0,0,.1)}' +
-    '.yc-big{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 8px}.yc-big button{border:2px solid #E1E4EE;background:#fff;border-radius:16px;padding:12px 6px;font:800 15px "Noto Sans KR",sans-serif;color:#1E2A78;cursor:pointer;line-height:1.3}' +
+    '.yc-big{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:26px 0 10px}.yc-big button{border:2px solid #E1E4EE;background:#fff;border-radius:16px;padding:12px 6px;font:800 15px "Noto Sans KR",sans-serif;color:#1E2A78;cursor:pointer;line-height:1.3}' +
     '.yc-big button small{display:block;font:600 11.5px "Noto Sans KR",sans-serif;color:#64748B;margin-top:2px}.yc-big button.on{background:#1E2A78;color:#fff;border-color:#1E2A78}.yc-big button.on small{color:#C7CEF5}' +
     '.yc-st{font:700 12px "Noto Sans KR",sans-serif;color:#0E7E6C;text-align:center;margin:0 0 8px}' +
-    '.yc-tools{display:flex;gap:6px;margin:0 0 10px;overflow-x:auto}.yc-tools button{flex:1 0 auto;border:1px solid #E1E4EE;background:#fff;border-radius:999px;padding:7px 11px;font:700 13px "Noto Sans KR",sans-serif;color:#1E2A78;cursor:pointer;white-space:nowrap;position:relative}' +
+    '.yc-tools{display:flex;gap:6px;margin:0 0 10px;overflow-x:auto;padding:10px 2px 2px}.yc-tools button{flex:1 0 auto;border:1px solid #E1E4EE;background:#fff;border-radius:999px;padding:7px 11px;font:700 13px "Noto Sans KR",sans-serif;color:#1E2A78;cursor:pointer;white-space:nowrap;position:relative}' +
     '.yc-tools button.new:after{content:"NEW";position:absolute;top:-7px;right:-2px;background:#DC2626;color:#fff;border-radius:999px;font-size:9.5px;padding:0 5px;line-height:15px}' +
     '.yc-sub{display:flex;gap:4px;background:#E2E8F0;border-radius:12px;padding:3px;margin-bottom:10px}.yc-sub button{flex:1;border:0;background:transparent;border-radius:10px;padding:9px 2px;font:700 13.5px "Noto Sans KR",sans-serif;color:#64748B;cursor:pointer}.yc-sub button.on{background:#fff;color:#0F172A;box-shadow:0 1px 3px rgba(0,0,0,.12)}' +
     '.yc-log{display:flex;flex-direction:column;gap:8px;padding-bottom:8px}' +
     '.yc-b{max-width:88%;border-radius:16px;padding:10px 12px;font-size:15px;line-height:1.5;word-break:break-word}' +
     '.yc-b.s{background:#fff;border:1px solid #E1E4EE;align-self:flex-start;border-top-left-radius:4px}.yc-b.u{background:#1E2A78;color:#fff;align-self:flex-end;border-top-right-radius:4px}' +
     '.yc-b .ko{display:block;font-size:12.5px;color:#5E6785;margin-top:5px;border-top:1px dashed #E1E4EE;padding-top:5px}.yc-b.u .ko{color:#C7CEF5;border-color:rgba(255,255,255,.25)}' +
-    '.yc-tl{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}.yc-tl button{font:700 12px "Noto Sans KR",sans-serif;border:1px solid #E1E4EE;border-radius:999px;padding:4px 9px;color:#1E2A78;background:#F6F7FC;cursor:pointer}.yc-tl button.on{background:#FEF3C7;border-color:#F59E0B}' +
+    '.yc-tl{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}.yc-tl button{font:700 12px "Noto Sans KR",sans-serif;border:1px solid #E1E4EE;border-radius:999px;padding:4px 9px;color:#1E2A78;background:#F6F7FC;cursor:pointer}.yc-tl button.on{background:#FEF3C7;border-color:#F59E0B}.yc-tl button.del{color:#B91C1C}.yc-ua{align-self:flex-end;display:flex;gap:5px;margin-top:-4px}.yc-ua button{font:700 11.5px "Noto Sans KR",sans-serif;border:1px solid #E1E4EE;border-radius:999px;padding:3px 9px;background:#fff;color:#334155;cursor:pointer}' +
     '.yc-b.u .yc-tl button{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}' +
     '.yc-fix{align-self:flex-end;width:88%;background:#FFF8E6;border:1px solid #FFD98A;border-radius:14px;font-size:13.5px;color:#4A3200;line-height:1.55}' +
     '.yc-fix summary{list-style:none;cursor:pointer;padding:8px 11px;font-weight:800;display:flex;gap:6px;align-items:center}.yc-fix summary::-webkit-details-marker{display:none}.yc-fix .bd{padding:0 11px 10px;display:grid;gap:5px}' +
@@ -108,20 +108,22 @@
     var busy = 0, last = "";
     function tryAt(i) {
       if (i >= models.length) return Promise.reject(new Error(busy ? "구글 AI가 지금 붐벼요. 잠시 뒤 다시 보내 주세요." : "쓸 수 있는 AI 모델을 찾지 못했어요 (" + last + ")."));
+      var ac = window.AbortController ? new AbortController() : null, tmo = setTimeout(function () { if (ac) ac.abort(); }, 25000);
       return fetch("https://generativelanguage.googleapis.com/v1beta/models/" + models[i] + ":generateContent?key=" + encodeURIComponent(ST.key), {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" }, signal: ac ? ac.signal : undefined,
         body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.8 } })
-      }).then(function (res) { return res.text().then(function (body) {
+      }).then(function (res) { clearTimeout(tmo); return res.text().then(function (body) {
         if (res.status === 404) { last = models[i] + " 없음"; return tryAt(i + 1); }
         if (res.status >= 500) { busy++; last = models[i] + " 붐빔"; return new Promise(function (r) { setTimeout(r, 1200); }).then(function () { return tryAt(i + 1); }); }
         if (res.status === 400 && /API key not valid|API_KEY_INVALID/i.test(body)) throw new Error("재미나이 키가 맞지 않아요. ⚙에서 키를 다시 넣어 주세요.");
         if (res.status === 429) throw new Error("오늘 무료 사용량을 다 썼거나 너무 빨리 보냈어요. 잠시 뒤(또는 내일) 다시 해 주세요.");
+        if (res.status === 401 || res.status === 403) throw new Error(/^AQ\./.test(ST.key) ? "이 AQ. 키를 구글이 막았어요. AI Studio에서 키를 새로 만들어 AIza 로 시작하는 키를 넣어 주세요 (⚙ → 키 바꾸기)." : "재미나이 키가 막혔어요 (" + res.status + "). AI Studio에서 키를 새로 만들어 넣어 주세요.");
         if (!res.ok) throw new Error("AI 연결 오류 (" + res.status + ")");
         var t = ""; try { t = JSON.parse(body).candidates[0].content.parts.map(function (x) { return x.text || ""; }).join(""); } catch (er) {}
         if (models[i] !== ST.model) { ST.model = models[i]; if (BALPUM.API.appAiModelSave) BALPUM.API.appAiModelSave(models[i]).catch(function () {}); }
         t = String(t || "").replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
         try { return JSON.parse(t); } catch (er) { throw new Error("샘의 답을 읽지 못했어요. 다시 보내 주세요."); }
-      }); }, function () { throw new Error("인터넷 연결을 확인해 주세요."); });
+      }); }, function (er) { clearTimeout(tmo); throw new Error(er && er.name === "AbortError" ? "구글이 25초 넘게 답이 없어요. 잠시 뒤 다시 눌러 주세요." : "인터넷 연결을 확인해 주세요."); });
     }
     return tryAt(0);
   }
@@ -229,7 +231,7 @@
   function tools(i, en, opt) { opt = opt || {};
     return '<div class="yc-tl"><button type="button" data-sp="' + i + '">🔊 듣기</button><button type="button" data-sl="' + i + '">🐢 천천히</button>' +
       (opt.gram !== false ? '<button type="button" data-gr="' + i + '">📐 문법 구조</button>' : '') +
-      '<button type="button" data-sv="' + i + '" class="' + (isSaved(en) ? "on" : "") + '">' + (isSaved(en) ? "⭐ 저장됨" : "☆ 저장") + '</button></div>'; }
+      '<button type="button" data-sv="' + i + '" class="' + (isSaved(en) ? "on" : "") + '">' + (isSaved(en) ? "⭐ 저장됨" : "☆ 저장") + '</button><button type="button" class="del" data-ldl="' + i + '" aria-label="지우기">🗑</button></div>'; }
   function fixHTML(f, i) {
     if (!f || !f.show) return '';
     var lv = Math.max(0, Math.min(3, +f.level || 0));
@@ -253,7 +255,9 @@
   }
   function lineHTML(l, i) {
     if (l.who === "s") return '<div class="yc-b s">' + e(l.en) + (l.ko ? '<span class="ko">' + e(l.ko) + '</span>' : '') + tools(i, l.en) + '</div>' + gramHTML(l.gram);
-    if (l.who === "u") return '<div class="yc-b u">' + e(l.en) + (l.v ? '<span class="ko">🎤 말로 했어요</span>' : '') + '</div>' + fixHTML(l.fix, i) + gramHTML(l.gram);
+    if (l.who === "u") return '<div class="yc-b u">' + e(l.en) + (l.v ? '<span class="ko">🎤 말로 했어요</span>' : '') + '</div>' +
+      '<div class="yc-ua"><button type="button" data-ued="' + i + '">✏️ 고치기</button><button type="button" data-udl="' + i + '">🗑 지우기</button><button type="button" data-ugr="' + i + '">📐 내 말 문법</button></div>' + fixHTML(l.fix, i) + gramHTML(l.gram);
+    if (l.who === "c") return '<div class="yc-cr">' + e(l.ko).replace(/\n/g, "<br>") + '<br><a href="tel:109">📞 109 자살예방상담전화 (24시간)</a><div class="yc-tl"><button type="button" class="del" data-ldl="' + i + '">🗑 지우기</button></div></div>';
     if (l.who === "c") return '<div class="yc-cr">' + e(l.ko).replace(/\n/g, "<br>") + '<br><a href="tel:109">📞 109 자살예방상담전화 (24시간)</a></div>';
     if (l.who === "x") return '<div class="yc-ex"><span class="k">🎯 오늘 표현</span><div class="en">' + e(l.en) + '</div><div>' + e(l.ko) + '</div>' + (l.ex ? '<div style="margin-top:4px">예) ' + e(l.ex) + ' <span class="hint" style="margin:0">' + e(l.exko) + '</span></div>' : '') + tools(i, l.en) + '</div>' + gramHTML(l.gram);
     if (l.who === "b") return buildDoneHTML(l, i);
@@ -275,10 +279,18 @@
     };
     each("[data-gr]", function (b) { b.onclick = function () { var l = get(b, "data-gr"); gram(l, l.en); }; });
     each("[data-fgr]", function (b) { b.onclick = function () { var l = get(b, "data-fgr"); gram(l, l.fix.natural || l.fix.corrected); }; });
+    each("[data-ugr]", function (b) { b.onclick = function () { var l = get(b, "data-ugr"); gram(l, l.en); }; });
+    // v1.6 ✏️ 고치기 · 🗑 지우기 — 내 말과 그 뒤 답(샘/상대)까지 같이 지워서 앞뒤가 안 맞는 대화가 남지 않게
+    var cut = function (i) { var j = i + 1; while (j < arr.length && arr[j].who !== "u" && arr[j].who !== "b" && arr[j].who !== "x") j++; arr.splice(i, j - i); saveMain(); };
+    each("[data-udl]", function (b) { b.onclick = function () { if (ST.busy) return; if (!confirm("이 말과 뒤따른 답을 지울까요?")) return; cut(+b.getAttribute("data-udl")); redraw(); say("지웠어요"); }; });
+    each("[data-ued]", function (b) { b.onclick = function () { if (ST.busy) return; var i = +b.getAttribute("data-ued"), t = arr[i].en; cut(i); redraw();
+      var T = $("ycT"); if (T) { T.value = t; T.dispatchEvent(new Event("input")); T.focus(); } say("아래 칸에서 고쳐서 엔터를 누르면 다시 보내요"); }; });
+    each("[data-ldl]", function (b) { b.onclick = function () { if (ST.busy) return; arr.splice(+b.getAttribute("data-ldl"), 1); saveMain(); redraw(); }; });
   }
 
   /* ---------- 큰 화면: 위 큰 단추 두 개 ---------- */
   function mainPage() {
+    window.scrollTo(0, 0);
     var chat = ST.page === "chat";
     app(bar('<button class="ic" id="ycSvd" aria-label="내 생활 영어">⭐</button><button class="ic" id="ycGf" aria-label="친구에게 선물하기">🎁</button><button class="ic" id="ycSet" aria-label="설정">⚙</button>') +
       '<div class="yc-big"><button type="button" data-pg="chat" class="' + (chat ? "on" : "") + '">🤙 샘이랑 수다<small>동네 친구 · 고쳐 주기</small></button><button type="button" data-pg="tr" class="' + (!chat ? "on" : "") + '">🔁 통역 · 상황 연습<small>외국인 손님 · 길 · 여행</small></button></div>' +
@@ -309,6 +321,9 @@
     padFix();
   }
   var onSend = function () {};
+  // 마지막 말이 아래 쓰는 칸에 가리지 않을 만큼만 내리기 (짧을 땐 그대로 두어 위 단추가 머리줄에 안 묻히게)
+  function toBottom() { setTimeout(function () { var f = $("ycFoot"), L = $("ycL") || $("trL") || $("stL"); if (!f || !L) return;
+    var gap = L.getBoundingClientRect().bottom - f.getBoundingClientRect().top + 12; if (gap > 0) window.scrollBy(0, gap); }, 30); }
 
   /* ---------- 🤙 샘이랑 수다 ---------- */
   function chatBody() {
@@ -328,7 +343,7 @@
     var L = $("ycL"); if (!L) return;
     L.innerHTML = ST.lines.map(lineHTML).join("") + (ST.busy ? '<div class="yc-wait">💬 샘이 쓰는 중…</div>' : '');
     bindLines(ST.lines, draw); bindBuildDone();
-    window.scrollTo(0, document.body.scrollHeight);
+    toBottom();
   }
   function samFirst() {
     ST.busy = true; draw();
@@ -442,13 +457,20 @@
       return '<div class="yc-tr"><span class="k">' + (x.to === "en" ? "🇰🇷 → 🇺🇸 내가 한 말" : "🇺🇸 → 🇰🇷 상대가 한 말") + '</span><div class="hint" style="margin:2px 0">' + e(x.src) + '</div><div class="big">' + e(x.out) + '</div>' +
         (x.tip ? '<div class="hint" style="margin:2px 0 0">💡 ' + e(x.tip) + '</div>' : '') +
         '<div class="yc-tl"><button type="button" data-tsp="' + i + '">🔊 다시</button><button type="button" data-tsl="' + i + '">🐢 천천히</button><button type="button" data-tbig="' + i + '">🔍 화면 크게</button>' +
-        (x.to === "en" ? '<button type="button" data-tsv="' + i + '" class="' + (isSaved(x.out) ? "on" : "") + '">' + (isSaved(x.out) ? "⭐ 저장됨" : "☆ 저장") + '</button>' : '') + '</div></div>'; }).join("") +
+        (x.to === "en" ? '<button type="button" data-tsv="' + i + '" class="' + (isSaved(x.out) ? "on" : "") + '">' + (isSaved(x.out) ? "⭐ 저장됨" : "☆ 저장") + '</button>' : '') +
+        '<button type="button" data-tgr="' + i + '">📐 영어 문법</button><button type="button" data-ted="' + i + '">✏️ 고치기</button><button type="button" class="del" data-tdl="' + i + '">🗑</button></div></div>' + gramHTML(x.gram); }).join("") +
       (ST.busy ? '<div class="yc-wait">🔁 옮기는 중…</div>' : '');
     each("[data-tsp]", function (b) { b.onclick = function () { var x = ST.tr[+b.getAttribute("data-tsp")]; speak(x.out, false, x.to === "en" ? "en-US" : "ko-KR"); }; });
     each("[data-tsl]", function (b) { b.onclick = function () { var x = ST.tr[+b.getAttribute("data-tsl")]; speak(x.out, true, x.to === "en" ? "en-US" : "ko-KR"); }; });
     each("[data-tbig]", function (b) { b.onclick = function () { bigScreen(ST.tr[+b.getAttribute("data-tbig")]); }; });
     each("[data-tsv]", function (b) { b.onclick = function () { var x = ST.tr[+b.getAttribute("data-tsv")]; toggleSave(x.out, x.src, "통역"); trDraw(); }; });
-    window.scrollTo(0, document.body.scrollHeight);
+    each("[data-tgr]", function (b) { b.onclick = function () { var x = ST.tr[+b.getAttribute("data-tgr")], en = x.to === "en" ? x.out : x.src;
+      if (x.gram && !x.gram.busy) { delete x.gram; trDraw(); return; }
+      x.gram = { busy: true }; trDraw(); gem(gramPrompt(en)).then(function (g) { g = g || {}; g.en = en; x.gram = g; saveMain(); trDraw(); }).catch(function (er) { delete x.gram; trDraw(); say(msgOf(er)); }); }; });
+    each("[data-tdl]", function (b) { b.onclick = function () { ST.tr.splice(+b.getAttribute("data-tdl"), 1); saveMain(); trDraw(); }; });
+    each("[data-ted]", function (b) { b.onclick = function () { var i = +b.getAttribute("data-ted"), x = ST.tr[i]; ST.tr.splice(i, 1); saveMain(); trDraw();
+      var T = $("ycT"); if (T) { T.value = x.src; T.dispatchEvent(new Event("input")); T.focus(); } say("잘못 알아들은 곳을 고쳐서 엔터를 누르면 다시 옮겨요"); }; });
+    toBottom();
   }
   function interp(t, to, voice) {
     if (ST.busy) return; ST.busy = true; trDraw();
@@ -485,7 +507,7 @@
     var L = $("stL"); if (!L) return; var S = ST.sit;
     L.innerHTML = (S.lines.length ? '' : '<div class="hint" style="text-align:center">상황을 고르고 [▶ 시작]을 누르면 상대가 먼저 말을 걸어요.</div>') + S.lines.map(lineHTML).join("") + (ST.busy ? '<div class="yc-wait">💬 상대가 말하는 중…</div>' : '');
     bindLines(S.lines, sitDraw);
-    window.scrollTo(0, document.body.scrollHeight);
+    toBottom();
   }
   function sitTurn(t, voice) {
     var S = ST.sit, cur = sitOf(S.k); if (ST.busy) return;

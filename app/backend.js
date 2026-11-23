@@ -742,7 +742,20 @@
     visit: function (rid, m) { return rpc("share_visit", { rid: rid, m: str(m) }); },
     unread: function () { return rpc("share_unread", {}).then(function (n) { return Number(n) || 0; }).catch(function () { return 0; }); },
     seen: function () { return rpc("share_mark_seen", {}).catch(function () {}); },
-    badge: function () { return rpc("my_badge", {}).catch(function () { return { badge: false, manner: 0, bonus: 0 }; }); }
+    badge: function () { return rpc("my_badge", {}).catch(function () { return { badge: false, manner: 0, bonus: 0 }; }); },
+    // v1.6 🤝 같이 보기 방
+    roomOpen: function (pid, m) { return rpc("share_room_open", { pid: pid, m: str(m) }); },
+    rooms: function (pid) { return rpc("share_room_list", { pid: pid }).then(function (r) { return r || []; }); },
+    myRooms: function () { return rpc("share_my_rooms", {}).then(function (r) { return r || []; }); },
+    room: function (rid) { return rpc("share_room_get", { rid: rid }); },
+    roomSend: function (rid, k, b) { return rpc("share_room_send", { rid: rid, k: k, b: b || {} }); },
+    roomEdit: function (mid, b) { return rpc("share_room_edit", { mid: mid, b: b || {} }); },
+    roomDel: function (mid) { return rpc("share_room_del", { mid: mid }); },
+    roomPick: function (mid, on) { return rpc("share_room_pick", { mid: mid, on_: !!on }); },
+    roomJoin: function (rid) { return rpc("share_room_join", { rid: rid }); },
+    roomClose: function (rid) { return rpc("share_room_close", { rid: rid }); },
+    postEdit: function (pid, t, b) { return rpc("share_post_edit", { pid: pid, t: str(t), b: b || {} }); },
+    planSend: function (pid, day, items) { return rpc("share_plan_send", { pid: pid, dday: str(day), items: items || [] }); }
   };
   var Push = { save: function (t) { return rpc("push_save", { t: str(t) }).catch(function () { return false; }); } };
 

@@ -51,7 +51,12 @@
     var gone = false, close = function () { if (gone) return; gone = true; d.style.transform = "translateY(-130%)"; setTimeout(function () { d.remove(); }, 400); };
     d.onclick = function () { close(); if (onTap) onTap(); };
     setTimeout(close, 6000);
-    ding();
+    // v1.6: 앱을 보고 있어도 핸드폰 알림 소리로 (화면을 안 눌렀으면 웹 소리는 핸드폰이 막아요)
+    var L = LN();
+    if (L && L.schedule) {
+      channel().then(function () { return L.schedule({ notifications: [{ id: 800000 + Math.floor(Math.random() * 90000), title: title, body: body, channelId: CH, schedule: { at: new Date(Date.now() + 300), allowWhileIdle: true } }] }); })
+        .catch(function () { ding(); });
+    } else ding();
   }
 
   /* ---------- 📅 달력 약속 알림 ---------- */
@@ -114,6 +119,7 @@
       if (go === "cal" && window.showCal) return showCal();
       if (go === "yc" && window.showYC) return showYC();
       if (go === "share" && window.showShare) return showShare();
+      if (go === "room" && x.room && window.showShareRoom) return showShareRoom(+x.room);
       if (go === "msg") {
         if (window.BP_CUST && window.showCustChat) return showCustChat();
         if (x.customer && window.showRoom) return showRoom(x.customer);
