@@ -93,8 +93,10 @@
   }
   // 🔔 약속 알림 (v1.5) — 약속이 바뀌면 핸드폰 알림을 다시 맞춤
   var notiT = null;
-  function notiLater() { clearTimeout(notiT); notiT = setTimeout(function () { if (window.BP_NOTI && BP_NOTI.can()) BP_NOTI.calSync(C.days, C.cfg.remind); }, 1500); }
+  function notiLater() { clearTimeout(notiT); notiT = setTimeout(function () { if (window.BP_NOTI && BP_NOTI.can()) { BP_NOTI.calSync(C.days, C.cfg.remind); if (BP_NOTI.alarmSync) BP_NOTI.alarmSync(C.days, !!C.cfg.alarmOff); } }, 1500); }
   window.calNotiSync = function () { if (!(window.BP_NOTI && BP_NOTI.can())) return; (C.loaded ? Promise.resolve() : load()).then(notiLater).catch(function () {}); };
+  var ALEAD = [[0, "정각"], [5, "5분 전"], [10, "10분 전"], [30, "30분 전"], [60, "1시간 전"]];
+  function alTxt(a) { return (ALEAD.filter(function (o) { return o[0] === +a.lead; })[0] || ALEAD[2])[1]; }
   var REM = [[-1, "끔"], [0, "약속 시각에"], [10, "10분 전"], [30, "30분 전"], [60, "1시간 전"], [120, "2시간 전"], [1440, "하루 전"]];
   function ymk() { return V.cur.y + "-" + (V.cur.m < 9 ? "0" : "") + (V.cur.m + 1); }
   function M() { var r = C.mons[ymk()] || {}; r.notes = r.notes || []; return r; }
@@ -470,11 +472,18 @@
     var h = '<div class="crow" style="align-items:center;justify-content:space-between;background:#FFF7ED;border-radius:12px;padding:6px 10px"><span style="font-weight:700">🔔 약속 알림</span>' +
       (window.BP_NOTI && BP_NOTI.can() ? '<select class="in" id="cRem" aria-label="약속 알림" style="width:auto;min-width:120px">' + REM.map(function (o) { return '<option value="' + o[0] + '"' + (+C.cfg.remind === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>'
         : '<span class="cwhy" style="margin:0">핸드폰 발품 앱에서 약속 ' + (REM.filter(function (o) { return o[0] === +C.cfg.remind; })[0] || REM[3])[1] + ' 울려요</span>') + '</div>' +
+      '<div class="crow" style="align-items:center;justify-content:space-between;background:' + (C.cfg.alarmOff ? '#F1F5F9' : '#FEF2F2') + ';border-radius:12px;padding:6px 10px"><span style="font-weight:700">⏰ 약속 알람 ' + (C.cfg.alarmOff ? '<small style="color:#64748B">(전체 꺼짐)</small>' : '') + '</span>' +
+        '<button type="button" class="eb" id="cAlAll">' + (C.cfg.alarmOff ? '⏰ 알람 전체 켜기' : '🔕 알람 전체 끄기') + '</button></div>' +
       '<div class="sub2">일정 · 약속 ' + (evs.length ? evs.length + "개" : "") + '</div><div>' + (evs.length ? evs.map(function (x) {
       return '<div class="li' + (x.d ? " done" : "") + '"><span style="display:flex;gap:8px;align-items:center"><span class="cbar" style="background:var(--' + (x.c || "lav") + ')"></span><input type="checkbox" data-evd="' + x.i + '"' + (x.d ? " checked" : "") + ' aria-label="마침"></span>' +
-        '<span class="ctx"><b>' + e(x.t || "하루 종일") + '</b> ' + e(x.x) + (x.p ? "<small>" + e(x.p) + "</small>" : "") + '</span><button type="button" class="cx" data-evx="' + x.i + '" aria-label="지우기">×</button></div>'; }).join("") : '<div class="cwhy">이날 약속이 없어요. 아래에 적어 보세요.</div>') + '</div>' +
+        '<span class="ctx"><b>' + e(x.t || "하루 종일") + '</b> ' + e(x.x) + (x.p ? "<small>" + e(x.p) + "</small>" : "") + '</span><span style="display:flex;align-items:center;gap:4px">' +
+        '<button type="button" class="eb" data-eval="' + x.i + '" aria-pressed="' + !!(x.al && x.al.on) + '" title="' + (x.al && x.al.on ? "누르면 알람 끄기" : "누르면 알람 켜기") + '" style="white-space:nowrap' + (x.al && x.al.on ? ';background:#FEE2E2;color:#B91C1C;font-weight:700' : ';opacity:.6') + '">' + (x.al && x.al.on ? "⏰ " + alTxt(x.al) : "⏰ 알람") + '</button>' +
+        '<button type="button" class="cx" data-evx="' + x.i + '" aria-label="지우기">×</button></span></div>'; }).join("") : '<div class="cwhy">이날 약속이 없어요. 아래에 적어 보세요.</div>') + '</div>' +
       '<div class="crow"><input class="in" type="time" id="cEvT" aria-label="시각"><input class="in cgrow" id="cEvX" placeholder="약속 (예: 검암역 302호 계약)" aria-label="약속"></div>' +
-      '<div class="crow"><input class="in cgrow" id="cEvP" placeholder="장소 (안 적어도 돼요)" aria-label="장소">' + EVC.map(function (c) { return '<button type="button" class="eb" data-evc="' + c + '" aria-pressed="' + (V.evc === c) + '" aria-label="색"><span class="sw" style="background:var(--' + c + ')"></span></button>'; }).join("") + '<button type="button" class="pb lv" id="cEvA">추가</button></div>';
+      '<div class="crow"><input class="in cgrow" id="cEvP" placeholder="장소 (안 적어도 돼요)" aria-label="장소">' + EVC.map(function (c) { return '<button type="button" class="eb" data-evc="' + c + '" aria-pressed="' + (V.evc === c) + '" aria-label="색"><span class="sw" style="background:var(--' + c + ')"></span></button>'; }).join("") + '<button type="button" class="pb lv" id="cEvA">추가</button></div>' +
+      '<div class="crow" style="align-items:center"><label style="display:flex;align-items:center;gap:6px;font-weight:700;white-space:nowrap;flex:none"><input type="checkbox" id="cEvAl" style="width:20px;height:20px;margin:0;flex:none"' + (V.alOn ? " checked" : "") + '>⏰ 알람 켜기</label>' +
+        '<select class="in" id="cEvAlL" aria-label="알람 몇 분 전" style="width:auto">' + ALEAD.map(function (o) { return '<option value="' + o[0] + '"' + ((V.alLead === undefined ? 10 : V.alLead) === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>' +
+        '<span class="cwhy" style="margin:0">중요한 약속은 알람 시계처럼 1분 간격 3번 울려요 · [끄기] [5분 뒤 다시]</span></div>';
     h += '<div class="sub2" style="margin-top:6px">할 일 ' + (r.todo.length ? r.todo.filter(function (t) { return t.d; }).length + " / " + r.todo.length : "") + '</div><div>' + r.todo.map(function (t, i) {
       return '<div class="li' + (t.d ? " done" : "") + '"><input type="checkbox" data-tdd="' + i + '"' + (t.d ? " checked" : "") + ' aria-label="마침"><span class="ctx">' + e(t.x) + '</span><button type="button" class="cx" data-tdx="' + i + '" aria-label="지우기">×</button></div>'; }).join("") + '</div>' +
       '<div class="crow"><input class="in cgrow" id="cTdX" placeholder="할 일을 적고 [추가]" aria-label="할 일"><button type="button" class="pb lv" id="cTdA">추가</button></div>';
@@ -488,7 +497,13 @@
     Array.prototype.forEach.call(q("[data-evx]"), function (b) { b.onclick = function () { var r = D(V.sel); r.ev.splice(+b.getAttribute("data-evx"), 1); putDay(V.sel, r); grid(); panel(); }; });
     Array.prototype.forEach.call(q("[data-evc]"), function (b) { b.onclick = function () { V.evc = b.getAttribute("data-evc"); Array.prototype.forEach.call(q("[data-evc]"), function (x) { x.setAttribute("aria-pressed", x === b); }); }; });
     $("cEvA").onclick = function () { var x = $("cEvX").value.trim(); if (!x) { $("cEvX").focus(); say("약속 내용을 적어 주세요."); return; }
-      var r = D(V.sel); r.ev.push({ id: uid("e"), t: $("cEvT").value || "", x: x, p: $("cEvP").value.trim(), c: V.evc, d: false }); putDay(V.sel, r); grid(); panel(); say(dayTitle(V.sel) + " 일정을 넣었어요."); };
+      var r = D(V.sel); V.alOn = $("cEvAl").checked; V.alLead = +$("cEvAlL").value;
+      r.ev.push({ id: uid("e"), t: $("cEvT").value || "", x: x, p: $("cEvP").value.trim(), c: V.evc, d: false, al: V.alOn ? { on: true, lead: V.alLead } : null }); putDay(V.sel, r); grid(); panel(); notiLater();
+      say(dayTitle(V.sel) + " 일정을 넣었어요." + (V.alOn ? " ⏰ 알람 " + alTxt({ lead: V.alLead }) : "")); };
+    Array.prototype.forEach.call(q("[data-eval]"), function (b) { b.onclick = function () { var r = D(V.sel), x = r.ev[+b.getAttribute("data-eval")];
+      if (x.al && x.al.on) { x.al.on = false; say("⏰ 이 약속 알람을 껐어요"); } else { x.al = { on: true, lead: x.al && x.al.lead !== undefined ? x.al.lead : (V.alLead === undefined ? 10 : V.alLead) }; say("⏰ 알람을 켰어요 · " + alTxt(x.al) + (C.cfg.alarmOff ? " (지금은 알람 전체가 꺼져 있어요)" : "")); }
+      putDay(V.sel, r); panel(); notiLater(); }; });
+    if ($("cAlAll")) $("cAlAll").onclick = function () { C.cfg.alarmOff = !C.cfg.alarmOff; putCfg(); notiLater(); panel(); say(C.cfg.alarmOff ? "🔕 약속 알람을 전체 껐어요 (약속마다 켜 둔 건 기억해요)" : "⏰ 약속 알람을 다시 켰어요"); };
     $("cEvX").onkeydown = function (ev) { if (ev.key === "Enter") $("cEvA").click(); };
     if ($("cRem")) $("cRem").onchange = function () { C.cfg.remind = +this.value; putCfg(); notiLater(); say(C.cfg.remind < 0 ? "약속 알림을 껐어요" : "약속 " + this.options[this.selectedIndex].text + " 알림이 울려요"); };
     Array.prototype.forEach.call(q("[data-tdd]"), function (b) { b.onchange = function () { var r = D(V.sel); r.todo[+b.getAttribute("data-tdd")].d = b.checked; putDay(V.sel, r); panel(); }; });

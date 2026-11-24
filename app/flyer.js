@@ -208,7 +208,7 @@
     var S = SAMPLES[0];
     return {
       title: it ? dealTitle(it) : S.title,
-      price: it ? [it.deal_type, it.price].filter(Boolean).join(" ") : S.price,
+      price: it ? (window.L17 ? L17.priceLine(it) : [it.deal_type, it.price].filter(Boolean).join(" ")) : S.price,
       t1: it ? bodyOf(it.room_structure || "", [it.direction ? it.direction + "향" : "", mg ? "관리비 " + mg : ""]) : bodyOf(S.room, S.lines),
       t2: "", boxText: "", boxBlue: false, boxAt: "middle",
       count: 0, photos: [], on: { title: true, photo: false, box: false, body: true, price: true },
@@ -219,7 +219,7 @@
   function applySample(F, S, it) {
     F.title = S.title; F.theme = S.theme; F.footColor = "navy";
     F.t1 = bodyOf(it && it.room_structure ? it.room_structure : S.room, S.lines); F.t2 = "";
-    F.price = it && it.price ? [it.deal_type, it.price].filter(Boolean).join(" ") : S.price;
+    F.price = it && it.price ? (window.L17 ? L17.priceLine(it) : [it.deal_type, it.price].filter(Boolean).join(" ")) : S.price;
     F.count = 0; F.on.photo = false; F.on.title = F.on.body = F.on.price = true; F.on.box = false;
     F.headSize = 66; F.bodySize = 60; F.footSize = 80; F.sample = S.name;
   }
@@ -365,7 +365,7 @@
   window.openGuide = function (it, G, saveId) {
     if (!G) {
       var dong = it && typeof dongOf === "function" ? dongOf(it) : "";
-      G = { title: it ? it.name || "" : "", price: it ? [it.deal_type, it.price].filter(Boolean).join(" ") : "", addrFull: it ? it.location || "" : "",
+      G = { title: it ? it.name || "" : "", price: it ? (window.L17 ? L17.priceLine(it) : [it.deal_type, it.price].filter(Boolean).join(" ")) : "", addrFull: it ? it.location || "" : "",
             dong: dong, full: false, room: it ? it.room_structure || "" : "", dir: it ? it.direction || "" : "",
             mgmt: it && typeof mgmtText === "function" ? mgmtText(it) : "", movein: "", parking: "", memo: "", photos: [] };
     }

@@ -133,7 +133,7 @@
     app(head("다시 들어오기", "처음 들어올 때 적은 전화번호와 숫자 6자리") +
       '<div class="card"><label for="clP">핸드폰 번호</label><input id="clP" type="tel" inputmode="numeric" placeholder="010-0000-0000">' +
       '<label for="clK">숫자 비밀번호 6자리</label><input id="clK" type="password" inputmode="numeric" maxlength="6">' +
-      '<button class="btn" id="clGo">들어가기</button><div class="hint">숫자를 잊으셨으면 초대한 부동산에 새 초대를 부탁하세요.</div><button class="btn ghost" id="clBk">← 뒤로</button></div>');
+      '<button class="btn" id="clGo">들어가기</button><div class="hint">앱을 지웠다 다시 깔았어도 같은 전화번호 + 숫자 6자리면 예전 방으로 그대로 이어져요. 숫자를 잊으셨으면 초대한 부동산 사장님께 <b>"숫자 비밀번호 다시 정해 주세요"</b>라고 부탁하세요 (새로 가입하지 마세요).</div><button class="btn ghost" id="clBk">← 뒤로</button></div>');
     $("clBk").onclick = function () { showCustEntry(); };
     $("clGo").onclick = function () { var b = this; b.disabled = true;
       BALPUM.Room.login($("clP").value, $("clK").value.trim()).then(function () { window.BP_CUST = undefined; startHome(); })
@@ -174,6 +174,7 @@
     app('<div class="loading">불러오는 중…</div>');
     Promise.all([loadMine(), BALPUM.DB.get("myhome", "main").catch(function () { return null; })]).then(function (r) {
       var a = ME.ag, mh = (r[1] && r[1].data) || {};
+      if (window.bpTips) setTimeout(function () { bpTips('cust'); }, 900);
       if (!a) { app(head("연결된 부동산이 없어요", "부동산 사장님께 초대 링크를 받아 주세요") + '<div class="card"><button class="btn" id="chJ">초대 코드 넣기</button><button class="btn ghost" id="chOut">로그아웃</button></div>');
         $("chJ").onclick = function () { showCustJoin(""); }; $("chOut").onclick = custLogout; return; }
       var dd = mh.end ? Math.ceil((new Date(mh.end + "T00:00:00") - new Date(new Date().toDateString())) / 864e5) : null;
@@ -466,7 +467,8 @@
       app('<div class="top"><button class="back" id="rmBk">← 손님 방</button><h2>' + e(L.name) + '</h2></div>' +
         '<div class="card" style="padding:10px 12px"><div style="font-size:13.5px;line-height:1.6">📞 <a href="tel:' + e(String(L.phone).replace(/\D/g, "")) + '">' + e(fmtPhone(L.phone)) + '</a> · 찾는 것: <b>' + e(L.purpose || "-") + '</b><br>' +
         '<span class="hint" style="margin:0">' + e(String(L.created_at).slice(0, 16).replace("T", " ")) + ' · ' + e(L.via || "") + (L.memo ? ' · ' + e(L.memo) : '') + '</span></div>' +
-        (L.cust_id && typeof showCustDetail === "function" ? '<button class="btn ghost" id="rmCu" style="margin:8px 0 0">👥 고객관리에서 보기</button>' : '') + '</div>' +
+        (L.cust_id && typeof showCustDetail === "function" ? '<button class="btn ghost" id="rmCu" style="margin:8px 0 0">👥 고객관리에서 보기</button>' : '') +
+        '<button class="btn ghost" id="rmPin" style="margin:8px 0 0">🔑 손님 숫자 비밀번호 다시 정하기</button><div id="rmPinX"></div></div>' +
         '<div class="rm-chat" id="rmL"></div>' +
         '<div class="rm-q"><button type="button" id="rmLs">🏠 매물 보내기</button><button type="button" id="rmLow">📊 최저가 답장</button></div><div id="rmX"></div>' +
         '<div class="rm-in"><textarea id="rmT" rows="1" enterkeyhint="send" placeholder="손님께 보낼 말"></textarea><button class="rm-send" id="rmS" aria-label="보내기">➤</button></div>');
@@ -478,6 +480,25 @@
       draw(); BALPUM.Room.seen(cid).catch(function () {});
       $("rmBk").onclick = function () { showRooms(); };
       if ($("rmCu")) $("rmCu").onclick = function () { stopAg(); custLoad().then(function () { showCustDetail(L.cust_id); }).catch(function () { say("고객관리를 열어 이름으로 찾아 주세요."); }); };
+      $("rmPin").onclick = function () {
+        var box = $("rmPinX"); if (box.innerHTML) { box.innerHTML = ""; return; }
+        var gen = String(Math.floor(100000 + Math.random() * 900000));
+        box.innerHTML = '<div class="note" style="margin-top:8px">손님이 숫자 6자리를 잊었을 때 써요. 새 숫자를 정해 손님께 알려 주면, 손님은 <b>[전에 들어왔어요 — 다시 들어오기]</b>에서 전화번호 + 새 숫자로 들어와요. 예전 대화는 그대로 이어져요.' +
+          '<label for="rmPinN">새 숫자 6자리</label><input id="rmPinN" inputmode="numeric" maxlength="6" value="' + gen + '" style="letter-spacing:.2em;font-weight:800">' +
+          '<div class="pbtns"><button class="pbtn" id="rmPinGo">🔑 이 숫자로 바꾸기</button><button class="pbtn" id="rmPinNo">닫기</button></div></div>';
+        $("rmPinNo").onclick = function () { box.innerHTML = ""; };
+        $("rmPinGo").onclick = function () { var k = $("rmPinN").value.trim(), b = this; if (!/^\d{6}$/.test(k)) { say("숫자 6자리로 적어 주세요."); return; }
+          b.disabled = true; b.textContent = "바꾸는 중…";
+          BALPUM.Plan.pinReset(cid, k).then(function () {
+            var txt = "[발품] " + L.name + "님, 발품 손님 숫자 비밀번호를 " + k + " 로 새로 정했어요. 앱에서 [전에 들어왔어요 — 다시 들어오기] → 전화번호와 " + k + " 를 넣어 주세요.";
+            box.innerHTML = '<div class="note" style="margin-top:8px">✅ 새 숫자: <b style="font-size:20px;letter-spacing:.15em">' + e(k) + '</b><br>손님께 알려 주세요.' +
+              '<div class="pbtns"><a class="pbtn" href="sms:' + e(String(L.phone).replace(/\D/g, "")) + '?body=' + encodeURIComponent(txt) + '">💬 문자로 알려 주기</a><button class="pbtn" id="rmPinC">📋 복사</button><button class="pbtn" id="rmPinNo2">닫기</button></div></div>';
+            $("rmPinC").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { say("복사했어요"); }, function () { say(txt); }); };
+            $("rmPinNo2").onclick = function () { box.innerHTML = ""; };
+            send("text", { text: "🔑 숫자 비밀번호를 새로 정했어요. 문자로 알려 드릴게요." });
+          }).catch(function (er) { b.disabled = false; b.textContent = "🔑 이 숫자로 바꾸기"; say(msgOf(er)); });
+        };
+      };
       $("rmS").onclick = function () { var t = $("rmT").value.trim(); if (!t) return; $("rmT").value = ""; send("text", { text: t }); };
       $("rmLs").onclick = function () {
         $("rmX").innerHTML = '<div class="card"><div class="hint" style="margin-top:0">매물 불러오는 중…</div></div>';
@@ -489,7 +510,8 @@
             return '<div class="rm-row" data-l="' + e(x.id) + '" style="margin-bottom:6px"><span class="tx"><b>' + e(x.price || "") + ' <span class="hint" style="font-weight:400">' + e(x.deal_type || "") + '</span></b><small>' + e([x.room_structure, x.name].filter(Boolean).join(" · ")) + '</small></span><span>보내기 ›</span></div>'; }).join("") || '<div class="hint">매물이 없어요.</div>';
             each("#rmLl [data-l]", function (r) { r.onclick = function () { var x = act.filter(function (y) { return String(y.id) === r.getAttribute("data-l"); })[0]; if (!x) return;
               var dong = typeof dongOf === "function" ? dongOf(x) : "";
-              send("listing", { lid: x.id, name: x.name || "", deal: x.deal_type || "", price: x.price || "", room: x.room_structure || "", dong: dong, memo: $("rmLm").value.trim() }).then(function () { $("rmX").innerHTML = ""; say("매물을 보냈어요."); }); }; }); };
+              var multi = window.L17 && L17.prices(x).length > 1;
+              send("listing", { lid: x.id, name: x.name || "", deal: multi ? "" : x.deal_type || "", price: multi ? L17.priceLine(x) : x.price || "", room: x.room_structure || "", dong: dong, memo: $("rmLm").value.trim() }).then(function () { $("rmX").innerHTML = ""; say("매물을 보냈어요."); }); }; }); };
           $("rmQ").oninput = list; list();
         }).catch(function (er) { $("rmX").innerHTML = ""; say(msgOf(er)); });
       };

@@ -1,5 +1,5 @@
 /* =====================================================================
-   발품투어 매물장 — 🔔 알림 (v1.5)
+   발품투어 매물장 — 🔔 알림 (v1.7: ⏰ 약속 알람)
    · 달력 약속 N분 전 알림 · 영콜 '오늘 표현' 하루 한 번 (핸드폰 안에서 저절로, 설정 필요 없음)
    · 손님 상담 · 공유방 소식 푸시 (파이어베이스 준비가 끝나면 켜짐 — config.js PUSH)
    · 앱 안에 있을 때: 위에서 내려오는 알림 줄 + 띵동 소리
@@ -96,6 +96,70 @@
     }).catch(function () { return 0; });
   }
 
+  /* ---------- ⏰ 약속 알람 (v1.7) — 알람 시계처럼 1분 간격 3번 · [끄기] [5분 뒤 다시] ---------- */
+  var AL_CH = "balpum_alarm", AL_IDS = "bp_cal_alarm", alReady = null;
+  function alarmPrep() {
+    if (alReady) return alReady;
+    var L = LN();
+    alReady = Promise.all([
+      L.createChannel ? L.createChannel({ id: AL_CH, name: "발품 약속 알람", description: "⏰ 알람을 켠 약속 (크게 · 진동)", importance: 5, visibility: 1, vibration: true, lights: true }).catch(function () {}) : null,
+      L.registerActionTypes ? L.registerActionTypes({ types: [{ id: "BP_ALARM", actions: [{ id: "off", title: "끄기", destructive: true }, { id: "snooze", title: "5분 뒤 다시" }] }] }).catch(function () {}) : null
+    ]);
+    return alReady;
+  }
+  function alarmOne(id, at, title, body, key) {
+    return { id: id, title: title, body: body, channelId: AL_CH, actionTypeId: "BP_ALARM", ongoing: false, autoCancel: true,
+             schedule: { at: new Date(at), allowWhileIdle: true }, extra: { go: "cal", al: key } };
+  }
+  function alarmSync(days, allOff) {
+    var L = LN(); if (!L) return Promise.resolve(0);
+    var old = getJ(AL_IDS, []);
+    var cancel = old.length ? L.cancel({ notifications: old.map(function (id) { return { id: id }; }) }).catch(function () {}) : Promise.resolve();
+    return cancel.then(function () {
+      setJ(AL_IDS, []); setJ("bp_alarm_map", {});
+      if (allOff) return 0;
+      var now = Date.now(), until = now + 60 * 864e5, list = [];
+      Object.keys(days || {}).forEach(function (k) {
+        (days[k].ev || []).forEach(function (x) {
+          if (x.d || !x.al || !x.al.on) return;
+          var p = k.split("-"), hm = /^(\d{1,2}):(\d{2})/.exec(x.t || "");
+          var at = (hm ? new Date(+p[0], +p[1] - 1, +p[2], +hm[1], +hm[2]) : new Date(+p[0], +p[1] - 1, +p[2], 8, 0)).getTime() - (+x.al.lead || 0) * 6e4;
+          if (at > now + 3e4 && at < until) list.push({ at: at, k: k, x: x });
+        });
+      });
+      list.sort(function (a, b) { return a.at - b.at; }); list = list.slice(0, 30);
+      if (!list.length) return 0;
+      return perm().then(function (ok) {
+        if (!ok) return 0;
+        return alarmPrep().then(function () {
+          var ns = [], map = {};
+          list.forEach(function (o, i) {
+            var key = o.x.id || (o.k + "_" + i), lead = +o.x.al.lead || 0;
+            var title = "⏰ " + (lead ? (lead >= 60 ? lead / 60 + "시간" : lead + "분") + " 뒤 약속" : "지금 약속") + (o.x.t ? " · " + o.x.t : "");
+            var body = (o.x.x || "약속") + (o.x.p ? " · " + o.x.p : "") + "  [끄기] [5분 뒤 다시]";
+            map[key] = [];
+            for (var r = 0; r < 3; r++) { var id = 200000 + i * 3 + r; ns.push(alarmOne(id, o.at + r * 6e4, title, body, key)); map[key].push(id); }
+          });
+          return L.schedule({ notifications: ns }).then(function () { setJ(AL_IDS, ns.map(function (n) { return n.id; })); setJ("bp_alarm_map", map); return list.length; });
+        });
+      });
+    }).catch(function () { return 0; });
+  }
+  function alarmAction(a) {
+    var L = LN(), n = (a && a.notification) || {}, x = n.extra || {}, key = x.al;
+    var map = getJ("bp_alarm_map", {}), ids = (map[key] || []).concat(n.id ? [n.id] : []);
+    var stop = ids.length ? L.cancel({ notifications: ids.map(function (id) { return { id: id }; }) }).catch(function () {}) : Promise.resolve();
+    if (a.actionId === "snooze") {
+      return stop.then(function () { return alarmPrep(); }).then(function () {
+        var id = 290000 + Math.floor(Math.random() * 9000);
+        map[key] = [id]; setJ("bp_alarm_map", map);
+        return L.schedule({ notifications: [alarmOne(id, Date.now() + 5 * 6e4, (n.title || "⏰ 약속").replace(/^⏰ ?/, "⏰ (다시) "), n.body || "", key)] });
+      }).catch(function () {});
+    }
+    stop.then(function () { delete map[key]; setJ("bp_alarm_map", map); });
+    if (a.actionId !== "off") openFrom(x);
+  }
+
   /* ---------- 🎯 영콜: 하루 한 번 '오늘 표현이 왔어요' ---------- */
   function ycDaily(on, hour) {
     var L = LN(); if (!L) return Promise.resolve(false);
@@ -118,6 +182,7 @@
     try {
       if (go === "cal" && window.showCal) return showCal();
       if (go === "yc" && window.showYC) return showYC();
+      if (go === "admin" && window.showAdmin) return showAdmin();
       if (go === "share" && window.showShare) return showShare();
       if (go === "room" && x.room && window.showShareRoom) return showShareRoom(+x.room);
       if (go === "msg") {
@@ -130,7 +195,11 @@
   var bound = false;
   function bindLocal() {
     var L = LN(); if (bound || !L || !L.addListener) return; bound = true;
-    L.addListener("localNotificationActionPerformed", function (a) { openFrom((a && a.notification && a.notification.extra) || {}); });
+    L.addListener("localNotificationActionPerformed", function (a) {
+      var x = (a && a.notification && a.notification.extra) || {};
+      if (x.al) return alarmAction(a);
+      openFrom(x);
+    });
   }
 
   /* ---------- 📲 푸시 (손님 상담 · 공유방) — 파이어베이스 준비가 끝난 앱에서만 ---------- */
@@ -161,7 +230,7 @@
   window.BP_NOTI = {
     can: function () { return !!LN(); },
     push: function () { return !!(P("PushNotifications") && ((window.BALPUM && BALPUM.config) || {}).PUSH); },
-    calSync: calSync, ycDaily: ycDaily, drop: drop, ding: ding, open: openFrom,
+    calSync: calSync, alarmSync: alarmSync, ycDaily: ycDaily, drop: drop, ding: ding, open: openFrom,
     afterLogin: function () { bindLocal(); pushInit();
       var u = window.BALPUM && BALPUM.Auth && BALPUM.Auth.user();
       if (u && calUser !== u.id && LN()) { calUser = u.id; setTimeout(function () { if (window.calNotiSync) calNotiSync(); }, 2500); } }

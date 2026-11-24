@@ -125,7 +125,7 @@
       if (r.ok) return r.body;
       var b = r.body || {}, m = String(b.message || b.msg || b.hint || "");
       if (r.status === 401) { saveSession(null); throw err("로그인이 끝났어요. 다시 로그인해 주세요."); }
-      if (/docs_listing_limit/.test(m)) throw err("무료 체험 등록 건수를 다 썼어요. 매물장 늘리는 방법은 홈페이지에서 보세요.");
+      if (/docs_listing_limit/.test(m) || (/row-level security/i.test(m) && /docs/.test(path) && method === "POST")) throw err("무료 등록 건수와 7일 여유를 다 썼어요. [내 사무소]에서 🎫 이용권을 넣으면 바로 다시 등록돼요. (보기 · 고치기는 그대로 돼요)");
       if (/row-level security/i.test(m)) throw err("이 자료를 고칠 수 없어요. 다시 로그인해 주세요.");
       if (r.status === 413 || /too large|payload/i.test(m)) throw err("자료가 너무 커요. 사진 수를 줄여 주세요.");
       throw err("서버 오류 (" + r.status + ")" + (m ? ": " + m.slice(0, 120) : ""));
@@ -184,10 +184,11 @@
   }
 
   /* ======================= 매물 ======================= */
+  // v1.7: prices(가격 여러 개) · clients(의뢰인 여러 명) · note(비고) — JSON 글자로 저장, 예전 칸(price · deal_type · client_name · phone)은 첫 줄로 같이 채움
   var LISTING_KEYS = ["date", "name", "price", "deal_type", "location", "client_name", "phone", "room_structure", "password",
-                      "status", "dong", "direction", "mgmt_fee", "mgmt_items", "meters"];
+                      "status", "dong", "direction", "mgmt_fee", "mgmt_items", "meters", "prices", "clients", "note"];
   var APP_EDIT_KEYS = ["name", "price", "deal_type", "location", "client_name", "phone", "room_structure", "password",
-                       "status", "dong", "direction", "mgmt_fee", "mgmt_items", "meters"];
+                       "status", "dong", "direction", "mgmt_fee", "mgmt_items", "meters", "prices", "clients", "note"];
   var PHOTO_MAX_CHARS = 45000, PHOTO_MAX_COUNT = 12;
 
   function listingObj(row) {
@@ -332,7 +333,7 @@
     return Promise.all([custList(), listListings()]).then(function (a) {
       return { customers: a[0], listings: a[1].map(function (x) {
         return { id: x.id, name: x.name, price: x.price, deal_type: x.deal_type, location: x.location, room_structure: x.room_structure,
-                 status: x.status, dong: x.dong, direction: x.direction, client_name: x.client_name, phone: x.phone }; }) };
+                 status: x.status, dong: x.dong, direction: x.direction, client_name: x.client_name, phone: x.phone, prices: x.prices, clients: x.clients }; }) };
     });
   };
   API.appCustSave = function (c) {
@@ -696,7 +697,7 @@
       return Auth.signUp(em, pin, { role: "customer", office_name: name, mobile: phone, member_type: "손님" }).then(function (r) {
         if (r.needConfirm) throw err("서버에서 '가입 확인 메일'이 켜져 있어 손님이 들어올 수 없어요. 사무소에 알려 주세요.");
       }, function (e) {
-        if (/이미 가입/.test(e.message)) return Auth.signIn(em, pin).catch(function () { throw err("이 전화번호는 이미 가입돼 있어요. 숫자 비밀번호 6자리를 확인해 주세요."); });
+        if (/이미 가입/.test(e.message)) return Auth.signIn(em, pin).catch(function () { throw err("이 전화번호는 이미 가입돼 있어요 (예전 방이 그대로 있어요). 처음 정한 숫자 6자리를 넣거나, 잊었으면 [← 뒤로] → [전에 들어왔어요]에서 들어오세요. 숫자가 기억나지 않으면 부동산 사장님께 \"숫자 비밀번호 다시 정해 주세요\"라고 부탁하세요."); });
         throw e;
       }).then(function () { ACCOUNT = null; return rpc("join_invite", { c: code, nm: name, ph: phone, purpose: purpose || "", via: via || "" }); });
     },
@@ -767,6 +768,25 @@
     try { return Promise.resolve(f.apply(null, args)); } catch (e) { return Promise.reject(e); }
   }
 
-  window.BALPUM = { call: call, Auth: Auth, Office: Office, API: API, DB: DB, Room: Room, Share: Share, Push: Push, nowStr: nowStr, config: CFG,
+  // v1.7 💳 요금 · 🎫 이용권 · 관리자
+  var Plan = {
+    me: function () { return rpc("my_plan", {}); },
+    redeem: function (c) { return rpc("ticket_redeem", { c: str(c) }); },
+    pay: function (payer, m, memo) { return rpc("pay_request", { payer: str(payer), m: Number(m) || 1, memo: str(memo) }); },
+    payCancel: function () { return rpc("pay_cancel", {}); },
+    admin: function () { return rpc("admin_offices", {}); },
+    adminSet: function (who, act, m) { return rpc("admin_set", { who: who, act: act, m: Number(m) || 1 }); },
+    make: function (m, n, who, memo) { return rpc("ticket_make", { m: Number(m), n: Number(n) || 1, who: who || null, memo: str(memo) }); },
+    tickets: function () { return rpc("ticket_list", {}); },
+    cancel: function (id) { return rpc("ticket_cancel", { tid: id }); },
+    // 🔑 손님 숫자 비밀번호 다시 정하기 (push 일꾼이 바꿔 줌)
+    pinReset: function (cust, pin) {
+      return ensureSession().then(function (s) {
+        return fetchJson(BASE + "/functions/v1/push", { method: "POST", headers: { "apikey": KEY, "Authorization": "Bearer " + s.access_token, "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "pin", cust: cust, pin: str(pin) }) });
+      }).then(function (r) { var b = r.body || {}; if (!r.ok || !b.ok) throw err(b.error || "바꾸지 못했어요. 푸시 일꾼(push)을 v1.7 로 바꿨는지 확인해 주세요."); return true; });
+    }
+  };
+  window.BALPUM = { call: call, Auth: Auth, Office: Office, API: API, DB: DB, Room: Room, Share: Share, Push: Push, Plan: Plan, nowStr: nowStr, config: CFG,
                     _setBase: function (b, k) { BASE = b; KEY = k || KEY; } };
 })();
