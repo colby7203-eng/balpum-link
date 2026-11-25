@@ -35,6 +35,13 @@
     '.yc-st{font:700 12px "Noto Sans KR",sans-serif;color:#0E7E6C;text-align:center;margin:0 0 8px}' +
     '.yc-tools{display:flex;gap:6px;margin:0 0 10px;overflow-x:auto;padding:10px 2px 2px}.yc-tools button{flex:1 0 auto;border:1px solid #E1E4EE;background:#fff;border-radius:999px;padding:7px 11px;font:700 13px "Noto Sans KR",sans-serif;color:#1E2A78;cursor:pointer;white-space:nowrap;position:relative}' +
     '.yc-tools button.new:after{content:"NEW";position:absolute;top:-7px;right:-2px;background:#DC2626;color:#fff;border-radius:999px;font-size:9.5px;padding:0 5px;line-height:15px}' +
+    '.yc-sorry{background:#FEF9C3;border:1px dashed #CA8A04;border-radius:12px;padding:8px 11px;font-size:12.5px;line-height:1.55;color:#713F12;margin:8px 0}.yc-sorry small{display:block;color:#92400E;margin-top:2px}' +
+    '.yc-t2{margin-top:-4px}.yc-t2 b{background:#DC2626;color:#fff;border-radius:999px;padding:0 6px;font-size:11px}.yc-t2 b:empty{display:none}' +
+    '.yc-pi{background:#FFFBEB;border:1px solid #FDE68A;border-radius:16px;padding:10px;margin-bottom:10px}.yc-pi .hd{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}.yc-pi .hd button{border:0;background:#fff;border-radius:999px;padding:5px 10px;font:700 12px "Noto Sans KR",sans-serif;margin-left:4px;cursor:pointer}' +
+    '.yc-pi .add{display:flex;gap:6px;margin:8px 0}.yc-pi .add textarea{flex:1;border:1px solid #FCD34D;border-radius:10px;padding:7px;font:14px "Noto Sans KR",sans-serif}.yc-pi .add button{border:0;background:#F59E0B;color:#fff;border-radius:10px;font-weight:800;padding:0 12px;cursor:pointer}' +
+    '.yc-pi .wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.yc-pi .note{background:#FEF08A;border-radius:3px 3px 14px 3px;padding:10px 10px 6px;box-shadow:2px 4px 8px rgba(0,0,0,.15);transform:rotate(var(--r));font-size:14px;line-height:1.45}' +
+    '.yc-pi .note.done{background:#DCFCE7;opacity:.75}.yc-pi .note textarea{width:100%;border:1px solid #CA8A04;border-radius:6px;font:14px "Noto Sans KR",sans-serif}.yc-pi .note .bt{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}.yc-pi .note .bt button{border:0;background:rgba(255,255,255,.7);border-radius:999px;padding:3px 7px;font-size:11.5px;cursor:pointer}' +
+    '.yc-undo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(120px + env(safe-area-inset-bottom,0px));z-index:9999;background:#0F172A;color:#fff;border-radius:999px;padding:9px 10px 9px 16px;font:700 14px "Noto Sans KR",sans-serif;display:flex;gap:10px;align-items:center;box-shadow:0 8px 20px rgba(0,0,0,.3)}.yc-undo button{border:0;background:#F97316;color:#fff;border-radius:999px;padding:6px 12px;font-weight:800;cursor:pointer}' +
     '.yc-sub{display:flex;gap:4px;background:#E2E8F0;border-radius:12px;padding:3px;margin-bottom:10px}.yc-sub button{flex:1;border:0;background:transparent;border-radius:10px;padding:9px 2px;font:700 13.5px "Noto Sans KR",sans-serif;color:#64748B;cursor:pointer}.yc-sub button.on{background:#fff;color:#0F172A;box-shadow:0 1px 3px rgba(0,0,0,.12)}' +
     '.yc-log{display:flex;flex-direction:column;gap:8px;padding-bottom:8px}' +
     '.yc-b{max-width:88%;border-radius:16px;padding:10px 12px;font-size:15px;line-height:1.5;word-break:break-word}' +
@@ -86,6 +93,8 @@
       ST.cfg = r[0] || {}; var d = (r[1] && r[1].data) || {}; ST.lines = d.lines || []; ST.tr = d.tr || []; ST.sit = d.sit && d.sit.lines ? d.sit : { k: "free", txt: "", lines: [] };
       var k = r[2] || {}; ST.key = k.key || ""; ST.model = k.model || ""; ST.models = k.models || []; ST.ag = r[3]; ST.saved = ((r[4] && r[4].data) || {}).items || []; ST.loaded = true;
       if (!ST.cfg.name) ST.cfg.name = (r[3] && r[3].name) || (typeof OFFICE_INFO !== "undefined" && OFFICE_INFO && OFFICE_INFO.ceo) || "";
+      return Promise.all([BALPUM.DB.get("yc", "posts").catch(function () { return null; }), BALPUM.DB.get("yc", "hist").catch(function () { return null; })]).then(function (q) {
+        PI.items = ((q[0] && q[0].data) || {}).items || []; PI.hist = ((q[1] && q[1].data) || {}).list || []; });
     });
   }
   function saveMain() { ST.lines = ST.lines.slice(-80); ST.tr = ST.tr.slice(-40); ST.sit.lines = ST.sit.lines.slice(-40); clearTimeout(ST.tm);
@@ -130,7 +139,9 @@
 
   /* ---------- 샘 · 부탁하는 글 ---------- */
   function who() {
-    return "너는 Sam 이야. 미국에서 온 50대 남자이고, 사용자의 다정한 '동네 친구'야. 같은 동네에 살면서 산책길에 만나는 친구처럼 편하게 말해.\n" +
+    return "너는 Sam 이야. 외국 시골 작은 농장 마을에서 한국으로 유학 온 사람이고, 사용자의 다정한 '동네 친구'야. 같은 동네에 살면서 산책길에 만나는 친구처럼 푸근하고 편하게 말해.\n" +
+      "말투와 이야기는 시골 친구처럼 소박하고 정겹게 (고향 농장 · 가족 · 한국에서 처음 겪는 일 이야기를 가끔). 하지만 고쳐 주는 영어(바르게 · 원어민은)는 늘 표준 영어로 정확하게.\n" +
+      "사용자 말을 잘못 알아들었으면 \"Oops, country boy here! 다시 말해 줄래?\" 처럼 가볍게 양해를 구하고 다시 물어봐.\n" +
       "사용자는 한국 사람이고 영어를 다시 배우는 중이야. 사용자를 \"" + (ST.cfg.name || "my friend") + "\" 라고 불러.\n" +
       "규칙:\n- 사용자 수준에 맞춰. 짧고 서툴게 쓰면 아주 쉬운 영어로, 잘 쓰면 조금 더 자연스럽게.\n" +
       "- 대화가 끊기지 않게 끝에 짧은 질문을 하나 붙여. 일·가족·취미·동네·고민을 궁금해해.\n" +
@@ -145,7 +156,7 @@
     "corrected(사용자 문장을 최대한 살려 문법만 고친 문장), natural(원어민이 실제로 하는 말), fixes(고친 곳 목록: from, to, why 쉬운 한국어), praise(잘한 점 한국어 한 줄). 사용자가 한국어로 쓰면 level 0, corrected/natural 에 그 말을 영어로 하는 법.";
   function startPrompt() {
     return who() + "지금 시각: " + hourKo() + "\n지금까지 이야기(최근):\n" + (hist() || "(처음 만남)") + "\n\n지금 사용자에게 먼저 말을 걸어. " +
-      (ST.lines.length ? "지난 이야기 중 하나를 자연스럽게 이어 물어봐." : "처음 만났으니 동네 친구 Sam 이라고 짧게 소개하고, 오늘 어땠는지 물어봐.") +
+      (ST.lines.length ? "지난 이야기 중 하나를 자연스럽게 이어 물어봐." : "처음 만났으니 외국 시골에서 유학 온 동네 친구 Sam 이라고 짧게 소개하고 (예: Hey neighbor! I'm Sam, from a tiny farm town far away.), 오늘 어땠는지 물어봐.") +
       "\n이 JSON 모양으로만 답해: {\"say\":{\"en\":\"\",\"ko\":\"한국어 뜻\"}}";
   }
   function replyPrompt(t) {
@@ -205,7 +216,7 @@
   function bindAsk() { if ($("ycAsk")) $("ycAsk").onclick = function () { askSheet("word"); }; }
 
   function keyPage() {
-    app(bar() + '<div class="yc-hero bpy">' + logo(40) + '<p>동네 친구 샘이랑 영어로 수다 떨기<br>외국인 손님 · 길에서 만난 사람과도 통역<br>틀려도 괜찮아요 · 한국말로 물어봐도 돼요</p></div>' +
+    app(bar() + '<div class="yc-hero bpy">' + logo(40) + '<p>외국 시골에서 유학 온 동네 친구 샘이랑 영어로 수다 떨기<br>외국인 손님 · 길에서 만난 사람과도 통역<br>틀려도 괜찮아요 · 한국말로 물어봐도 돼요</p></div>' +
       '<div class="card"><div class="sect" style="margin-top:0">🔑 처음 한 번만: 재미나이 무료 키 넣기</div>' +
       '<div class="howkey"><ol><li>아래 [키 만들러 가기]를 눌러 구글 계정으로 들어가요</li><li><b>Create API key</b>(API 키 만들기)를 눌러요</li><li>생긴 키 옆 <b>복사</b>를 눌러요 — 키는 <b>AQ.</b> 또는 <b>AIza</b>로 시작해요. 둘 다 맞는 키예요</li><li>여기 [📋 붙여넣기]를 누르거나 칸을 길게 눌러 붙여넣기 → [저장]</li></ol>' +
       '<div class="safe">✅ 무료예요. 키는 내 계정에만 저장되고 화면엔 끝 4자리만 보여요. 이 키를 넣어도 다른 프로그램은 그대로 잘 돼요.</div></div>' +
@@ -231,7 +242,7 @@
   function tools(i, en, opt) { opt = opt || {};
     return '<div class="yc-tl"><button type="button" data-sp="' + i + '">🔊 듣기</button><button type="button" data-sl="' + i + '">🐢 천천히</button>' +
       (opt.gram !== false ? '<button type="button" data-gr="' + i + '">📐 문법 구조</button>' : '') +
-      '<button type="button" data-sv="' + i + '" class="' + (isSaved(en) ? "on" : "") + '">' + (isSaved(en) ? "⭐ 저장됨" : "☆ 저장") + '</button><button type="button" class="del" data-ldl="' + i + '" aria-label="지우기">🗑</button></div>'; }
+      '<button type="button" data-sv="' + i + '" class="' + (isSaved(en) ? "on" : "") + '">' + (isSaved(en) ? "⭐ 저장됨" : "☆ 저장") + '</button><button type="button" data-pin="' + i + '">📝 포스트잇</button><button type="button" class="del" data-ldl="' + i + '" aria-label="지우기">🗑</button></div>'; }
   function fixHTML(f, i) {
     if (!f || !f.show) return '';
     var lv = Math.max(0, Math.min(3, +f.level || 0));
@@ -271,6 +282,7 @@
     each("[data-fsp]", function (b) { b.onclick = function () { speak(lineEn(get(b, "data-fsp"), true)); }; });
     each("[data-fsl]", function (b) { b.onclick = function () { speak(lineEn(get(b, "data-fsl"), true), true); }; });
     each("[data-sv]", function (b) { b.onclick = function () { var l = get(b, "data-sv"); toggleSave(l.en, l.ko || l.exko || "", "수다"); redraw(); }; });
+    each("[data-pin]", function (b) { b.onclick = function () { var l = get(b, "data-pin"); piAdd(l.en + (l.ko ? "\n" + l.ko : "")); }; });
     each("[data-fsv]", function (b) { b.onclick = function () { var l = get(b, "data-fsv"); toggleSave(l.fix.natural || l.fix.corrected, l.fix.meaning || l.en, "고친 말"); redraw(); }; });
     var gram = function (l, en) {
       if (l.gram && !l.gram.busy && l.gram.en === en) { delete l.gram; redraw(); return; }
@@ -293,7 +305,7 @@
     window.scrollTo(0, 0);
     var chat = ST.page === "chat";
     app(bar('<button class="ic" id="ycSvd" aria-label="내 생활 영어">⭐</button><button class="ic" id="ycGf" aria-label="친구에게 선물하기">🎁</button><button class="ic" id="ycSet" aria-label="설정">⚙</button>') +
-      '<div class="yc-big"><button type="button" data-pg="chat" class="' + (chat ? "on" : "") + '">🤙 샘이랑 수다<small>동네 친구 · 고쳐 주기</small></button><button type="button" data-pg="tr" class="' + (!chat ? "on" : "") + '">🔁 통역 · 상황 연습<small>외국인 손님 · 길 · 여행</small></button></div>' +
+      '<div class="yc-big"><button type="button" data-pg="chat" class="' + (chat ? "on" : "") + '">🤙 샘이랑 수다<small>유학 온 동네 친구 · 고쳐 주기</small></button><button type="button" data-pg="tr" class="' + (!chat ? "on" : "") + '">🔁 통역 · 상황 연습<small>외국인 손님 · 길 · 여행</small></button></div>' +
       '<div id="ycBody"></div><div class="yc-pad" id="ycPad"></div>' +
       '<div class="yc-foot" id="ycFoot"><div class="yc-in"><button type="button" class="yc-mic" id="ycMic" aria-label="말하기">🎤</button><textarea id="ycT" rows="1" enterkeyhint="send"></textarea><button type="button" class="yc-snd" id="ycS" aria-label="보내기">↑</button></div>' +
       '<div class="yc-lang" id="ycLg"></div></div>' + askBtn());
@@ -325,15 +337,72 @@
   function toBottom() { setTimeout(function () { var f = $("ycFoot"), L = $("ycL") || $("trL") || $("stL"); if (!f || !L) return;
     var gap = L.getBoundingClientRect().bottom - f.getBoundingClientRect().top + 12; if (gap > 0) window.scrollBy(0, gap); }, 30); }
 
+  /* ---------- 📝 포스트잇 (v1.8) — 외울 것 붙여 두기 · 다 외우면 [외웠어요] · 지우기 ---------- */
+  var PI = { items: [], hist: [], open: false, showDone: false };
+  function piSave() { BALPUM.DB.upsert("yc", "posts", { items: PI.items.slice(0, 200) }).catch(function () {}); var n = $("ycPiN"); if (n) n.textContent = PI.items.filter(function (x) { return !x.done; }).length || ""; }
+  function piAdd(t) { t = String(t || "").trim().slice(0, 400); if (!t) return; PI.items.unshift({ t: t, at: Date.now(), done: false }); piSave(); PI.open = true; piDraw(); say("📝 포스트잇에 붙였어요"); }
+  function piDraw() {
+    var B = $("ycPiB"); if (!B) return;
+    if (!PI.open) { B.innerHTML = ""; return; }
+    var list = PI.items.map(function (x, i) { return { x: x, i: i }; }).filter(function (o) { return PI.showDone || !o.x.done; });
+    var nd = PI.items.filter(function (x) { return x.done; }).length;
+    B.innerHTML = '<div class="yc-pi"><div class="hd"><b>📝 외울 것 포스트잇</b><span><button type="button" id="piDn">' + (PI.showDone ? "외운 것 숨기기" : "✅ 외운 것 " + nd + " 보기") + '</button><button type="button" id="piX">접기 ▴</button></span></div>' +
+      '<div class="add"><textarea id="piT" rows="2" placeholder="기억하고 싶은 말 · 표현을 적고 [＋ 붙이기]"></textarea><button type="button" id="piA">＋ 붙이기</button></div>' +
+      (list.length ? '<div class="wall">' + list.map(function (o) { var x = o.x;
+        return '<div class="note' + (x.done ? " done" : "") + '" style="--r:' + ((o.i % 5) - 2) * 1.2 + 'deg">' + (x.edit ? '<textarea data-pe="' + o.i + '" rows="3">' + e(x.t) + '</textarea>' : '<div class="tx">' + e(x.t).replace(/\n/g, "<br>") + '</div>') +
+          '<div class="bt"><button type="button" data-pd="' + o.i + '">' + (x.done ? "↩ 다시 외우기" : "✅ 외웠어요") + '</button><button type="button" data-pk="' + o.i + '">🔊</button><button type="button" data-ped="' + o.i + '">' + (x.edit ? "💾 저장" : "✏️") + '</button><button type="button" data-px="' + o.i + '">🗑</button></div></div>'; }).join("") + '</div>'
+        : '<div class="hint" style="margin:6px 0 0">아직 붙인 포스트잇이 없어요. 샘 말 아래 [📝 포스트잇]을 누르거나 위에 적어 붙여 보세요.</div>') + '</div>';
+    $("piX").onclick = function () { PI.open = false; piDraw(); };
+    $("piDn").onclick = function () { PI.showDone = !PI.showDone; piDraw(); };
+    $("piA").onclick = function () { piAdd($("piT").value); };
+    each("[data-pd]", function (b) { b.onclick = function () { var x = PI.items[+b.getAttribute("data-pd")]; x.done = !x.done; piSave(); piDraw(); if (x.done) say("✅ 잘했어요! 외운 것으로 넣어 두었어요"); }; });
+    each("[data-pk]", function (b) { b.onclick = function () { speak(PI.items[+b.getAttribute("data-pk")].t.split("\n")[0]); }; });
+    each("[data-px]", function (b) { b.onclick = function () { if (!confirm("이 포스트잇을 지울까요?")) return; PI.items.splice(+b.getAttribute("data-px"), 1); piSave(); piDraw(); }; });
+    each("[data-ped]", function (b) { b.onclick = function () { var i = +b.getAttribute("data-ped"), x = PI.items[i];
+      if (x.edit) { var ta = document.querySelector('[data-pe="' + i + '"]'); x.t = (ta ? ta.value : x.t).trim() || x.t; delete x.edit; piSave(); } else x.edit = true; piDraw(); }; });
+  }
+  /* ---------- 🔄 새로 시작 (v1.8) — 지금 대화는 '지난 대화'에 보관하고 깨끗하게 · 10초 안에 되돌리기 ---------- */
+  function newStart() {
+    if (ST.busy) return;
+    if (!ST.lines.length) { say("이미 새 대화예요"); return; }
+    if (!confirm("지금 대화를 지우고 새로 시작할까요?\n(지난 대화에 보관해 두어요 · ⭐ 내 생활 영어와 📝 포스트잇은 그대로)")) return;
+    var keep = ST.lines.slice();
+    PI.hist.unshift({ at: Date.now(), lines: keep.slice(-60) }); PI.hist = PI.hist.slice(0, 10);
+    BALPUM.DB.upsert("yc", "hist", { list: PI.hist }).catch(function () {});
+    ST.lines = []; saveMain(); mainPage();
+    var d = document.createElement("div"); d.className = "yc-undo";
+    d.innerHTML = '🔄 새로 시작했어요 <button type="button">↩ 되돌리기</button>'; document.body.appendChild(d);
+    var t = setTimeout(function () { d.remove(); }, 10000);
+    d.querySelector("button").onclick = function () { clearTimeout(t); d.remove(); ST.lines = keep; PI.hist.shift(); BALPUM.DB.upsert("yc", "hist", { list: PI.hist }).catch(function () {}); saveMain(); mainPage(); say("되돌렸어요"); };
+  }
+  function oldPage() {
+    window.scrollTo(0, 0);
+    app(bar() + '<div class="card"><div class="sect" style="margin-top:0">🗂 지난 대화 (최근 10개)</div><div class="hint" style="margin-top:0">[🔄 새로 시작]할 때 보관한 대화예요. [이어 하기]를 누르면 그 대화로 돌아가요.</div></div>' +
+      PI.hist.map(function (h, i) { var d = new Date(h.at), first = (h.lines.filter(function (l) { return l.who === "u" || l.who === "s"; })[0] || {}).en || "";
+        return '<div class="card"><b>' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + d.getHours() + ':' + ("0" + d.getMinutes()).slice(-2) + '</b> <span class="hint" style="margin:0">' + h.lines.length + '줄</span><div style="margin:6px 0;color:#475569">' + e(first).slice(0, 90) + '</div>' +
+          '<div class="yc-tl"><button type="button" data-hr="' + i + '">↩ 이어 하기</button><button type="button" class="del" data-hx="' + i + '">🗑 지우기</button></div></div>'; }).join("") +
+      '<button class="btn ghost" id="ohBk">← 샘이랑 수다로</button>');
+    $("ycBk").onclick = home; $("ohBk").onclick = function () { mainPage(); };
+    each("[data-hr]", function (b) { b.onclick = function () { var i = +b.getAttribute("data-hr"), h = PI.hist[i];
+      if (ST.lines.length) PI.hist[i] = { at: Date.now(), lines: ST.lines.slice(-60) }; else PI.hist.splice(i, 1);
+      ST.lines = h.lines; saveMain(); BALPUM.DB.upsert("yc", "hist", { list: PI.hist }).catch(function () {}); ST.page = "chat"; mainPage(); say("그 대화로 돌아왔어요"); }; });
+    each("[data-hx]", function (b) { b.onclick = function () { if (!confirm("이 지난 대화를 지울까요?")) return; PI.hist.splice(+b.getAttribute("data-hx"), 1); BALPUM.DB.upsert("yc", "hist", { list: PI.hist }).catch(function () {}); oldPage(); }; });
+  }
+
   /* ---------- 🤙 샘이랑 수다 ---------- */
   function chatBody() {
     var exNew = window.ycHasNew();
     $("ycBody").innerHTML = '<div class="yc-st">● 샘 접속 중 · 영어나 한국말로 편하게</div>' +
       '<div class="yc-tools"><button type="button" id="ycBu">🧩 내가 만들기</button><button type="button" id="ycEx" class="' + (exNew ? "new" : "") + '">🎯 오늘 표현</button><button type="button" id="ycSv2">⭐ 내 생활 영어</button></div>' +
+      '<div class="yc-tools yc-t2"><button type="button" id="ycPi">📝 포스트잇 <b id="ycPiN">' + (PI.items.filter(function (x) { return !x.done; }).length || "") + '</b></button><button type="button" id="ycNew">🔄 새로 시작</button>' + (PI.hist.length ? '<button type="button" id="ycOld">🗂 지난 대화 ' + PI.hist.length + '</button>' : '') + '</div>' +
+      '<div id="ycPiB"></div>' +
+      (ST.lines.length ? '' : '<div class="yc-sorry" style="margin-bottom:8px">🌾 샘은 외국 시골에서 막 유학 온 친구라 가끔 엉뚱해요. 너그럽게 봐 주세요~</div>') +
       '<div id="ycBuB"></div><div class="yc-log" id="ycL"></div>';
     $("ycT").placeholder = "영어나 한국말로 · 엔터 = 보내기";
     setLangRow(true);
     $("ycBu").onclick = function () { builder(); }; $("ycEx").onclick = todayExpr; $("ycSv2").onclick = savedPage;
+    $("ycPi").onclick = function () { PI.open = !PI.open; piDraw(); }; $("ycNew").onclick = newStart; if ($("ycOld")) $("ycOld").onclick = oldPage;
+    if (PI.open) piDraw();
     onSend = send;
     draw();
     var last = ST.lines[ST.lines.length - 1], stale = !last || (Date.now() - (last.t || 0)) > 3 * 3600 * 1000;
@@ -642,7 +711,8 @@
       '<button class="btn" id="ycSv">저장</button></div>' +
       '<div class="card"><div class="sect" style="margin-top:0">🔑 재미나이 키</div><div class="hint" style="margin-top:0">지금 키: ' + e(ST.key ? "••••" + ST.key.slice(-4) : "없음") + '</div><button class="btn ghost" id="ycKy">키 바꾸기</button></div>' +
       '<div class="card"><div class="sect" style="margin-top:0">🧹 대화 지우기</div><div class="hint" style="margin-top:0">샘과 나눈 이야기 ' + ST.lines.length + '줄 · 통역 ' + ST.tr.length + '줄이 내 계정에 있어요. (⭐ 내 생활 영어는 그대로)</div><button class="btn ghost" id="ycClr">대화 모두 지우기</button></div>' +
-      '<div class="hint" style="text-align:center">샘은 AI 친구예요. 진짜 친구 · 가족 · 동네 사람들과의 이야기도 응원해요.</div>');
+      '<div class="hint" style="text-align:center">샘은 AI 친구예요. 진짜 친구 · 가족 · 동네 사람들과의 이야기도 응원해요.</div>' +
+      '<div class="yc-sorry">🌾 샘은 외국 시골에서 막 유학 온 친구라 가끔 엉뚱한 말도 하고 잘못 알아듣기도 해요. 완벽하진 않아도 너그럽게 봐 주세요~ 같이 늘어 가요! <small>계약 · 병원 · 돈 같은 중요한 일은 꼭 사람에게 한 번 더 확인하세요.</small></div>');
     $("ycBk").onclick = function () { showYC(); };
     each("#ycRt button", function (b) { b.onclick = function () { ST.cfg.rate = +b.getAttribute("data-v"); each("#ycRt button", function (x) { x.classList.toggle("on", x === b); x.style.background = x === b ? "#1E2A78" : "#fff"; x.style.color = x === b ? "#fff" : ""; }); speak("Hi! This is how I sound.", false); }; });
     $("ycSv").onclick = function () { ST.cfg.name = $("ycNm").value.trim(); ST.cfg.auto = $("ycAu").checked;
@@ -662,7 +732,7 @@
       code = String(code || "").replace(/"/g, "");
       var link = homeUrl() + "join.html?c=" + code + "&v=gift" + (from ? "&from=" + encodeURIComponent(from) : "");
       var office = (ST.ag && ST.ag.office) || (typeof OFFICE_INFO !== "undefined" && OFFICE_INFO && OFFICE_INFO.name) || "";
-      var msg = "🎁 직빵 young call 선물이에요!\n동네 친구 샘이랑 영어로 수다 떨어요. 무료예요." + (office ? "\n(" + office + " 발품 앱)" : "") + "\n" + link;
+      var msg = "🎁 직빵 young call 선물이에요!\n외국 시골에서 유학 온 동네 친구 샘이랑 영어로 수다 떨어요. 무료예요." + (office ? "\n(" + office + " 발품 앱)" : "") + "\n" + link;
       $("gfBox").innerHTML = '<div class="sect" style="margin-top:0">🎁 선물 링크</div><div class="rm-link" style="font-weight:700;word-break:break-all;user-select:all;background:#F8FAFC;border:1px dashed #94A3B8;border-radius:10px;padding:10px;margin:8px 0">' + e(link) + '</div>' +
         (office ? '<div class="hint" style="margin:0 0 8px">✓ 링크에 <b>' + e(office) + '</b>이(가) 같이 붙어 가요. 친구가 들어오면 그 부동산 손님으로 연결돼요.</div>' : '') +
         '<button class="btn" id="gfSh">💬 카톡 · 문자로 선물하기</button><button class="btn ghost" id="gfCp">📋 복사</button><button class="btn ghost" id="gfQr">🔳 QR 보여 주기</button><div id="gfQrB" style="display:flex;justify-content:center"></div>';

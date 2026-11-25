@@ -82,6 +82,12 @@
     '.rm-corners{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.rm-corner{border:0;border-radius:16px;padding:14px 8px 10px;display:grid;justify-items:center;gap:6px;position:relative;cursor:pointer;box-shadow:0 5px 14px rgba(255,180,0,.32);overflow:hidden}' +
     '.rm-corner small{font:700 11.5px "Noto Sans KR",sans-serif;color:#5A3D00}.rm-corner .gf{position:absolute;right:8px;top:6px;font-size:15px}' +
     '.rm-maker{margin-top:14px;border-top:1px dashed #D5D9E6;padding-top:10px;text-align:center;font-size:12px;color:#64748B;line-height:1.6}.rm-maker b{color:#1E2A78}' +
+    '.rm-ags{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:10px 12px;margin:-2px 0 12px}.rm-ags .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.rm-ags .hd button{border:0;background:none;color:#1E2A78;font-weight:700;cursor:pointer}' +
+    '.rm-ags .ch{display:flex;gap:6px;flex-wrap:wrap}.rm-ags .ch button{border:1.5px solid #CBD5E1;background:#fff;border-radius:999px;padding:7px 12px;font:700 13.5px "Noto Sans KR",sans-serif;cursor:pointer;position:relative}.rm-ags .ch button.on{background:#1E2A78;border-color:#1E2A78;color:#fff}' +
+    '.rm-ags .ch i,.rm-agc i.mn{font-style:normal;font-size:10.5px;background:#F97316;color:#fff;border-radius:999px;padding:0 6px;margin-right:4px}.rm-ags .rm-dot{position:static;margin-left:4px}' +
+    '.rm-rule{background:#FFF7ED;border:1px solid #FDBA74;border-radius:12px;padding:9px 11px;font-size:13px;line-height:1.55;color:#7C2D12;margin-top:8px}.rm-rule b:first-child{display:block;color:#9A3412;margin-bottom:2px}.rm-rule small{color:#9A3412}' +
+    '.rm-agc .hd{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}.rm-tag{font-size:12px;font-weight:800;border-radius:999px;padding:2px 9px}.rm-tag.sec{background:#FEE2E2;color:#B91C1C}.rm-tag.gen{background:#E0E7FF;color:#1E2A78}.rm-tag.off{background:#F1F5F9;color:#64748B}' +
+    '.rm-ask{position:fixed;inset:0;z-index:99995;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:16px}.rm-ask .in{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:18px 16px 12px;box-shadow:0 20px 40px rgba(0,0,0,.3);font-size:14.5px;line-height:1.55}.rm-ask .t{font-size:17px;font-weight:800;margin-bottom:6px}.rm-ask .bd{margin-bottom:6px}' +
     '.rm-head{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 14px}.rm-foot{width:64px;height:64px;border-radius:20px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15)}' +
     '</style>';
 
@@ -99,6 +105,7 @@
     $("ceBack").onclick = function () { showLogin("", "in"); };
   };
   window.showCustJoin = function (code, via) {
+    if (window.BP_CUST && BALPUM.Auth.user() && window.showCustAddCode) return showCustAddCode(code, via);   // v1.8 이미 깔린 손님은 더하기만
     var P = { purpose: "" };
     app(head("반가워요!", "이름과 핸드폰 번호만 적으면 바로 시작해요") +
       '<div class="card"><div id="cjOffice" class="note" style="display:none"></div>' +
@@ -139,7 +146,7 @@
       BALPUM.Room.login($("clP").value, $("clK").value.trim()).then(function () { window.BP_CUST = undefined; startHome(); })
         .catch(function (er) { b.disabled = false; say(msgOf(er)); }); };
   };
-  function viaName(v) { return v === "qr" ? "QR" : v === "sms" ? "문자 링크" : v === "kakao" ? "카톡 링크" : v === "gift" ? "영콜 선물" : "링크"; }
+  function viaName(v) { return v === "qr" ? "QR" : v === "sms" ? "문자 링크" : v === "kakao" ? "카톡 링크" : v === "gift" ? "영콜 선물" : v === "banner" ? "매장 배너" : v === "send" ? "배너 보내기" : v === "mail" ? "우편" : "링크"; }
   // 앱을 처음 켰을 때: 홈페이지 초대 페이지에서 복사해 둔 코드가 있으면 바로 가입 화면으로
   window.joinFromClip = function () {
     if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) || !window.bpClipJoin) return;
@@ -155,11 +162,16 @@
   /* =================================================================
      손님 화면
      ================================================================= */
-  var ME = { ag: null, msgs: [], last: 0, timer: null };
+  var ME = { ag: null, msgs: [], last: 0, timer: null, list: [] };
   function cust() { return BALPUM.Auth.user() || {}; }
+  // v1.8 한 손님 · 여러 부동산: 지금 보고 있는 부동산 (없으면 1순위)
+  function curAg(v) { try { if (v === undefined) return localStorage.getItem("bp_cur_ag") || ""; if (v) localStorage.setItem("bp_cur_ag", v); else localStorage.removeItem("bp_cur_ag"); } catch (er) { return ""; } }
   function loadMine() {
-    return BALPUM.Room.myAgent().then(function (a) { ME.ag = a; if (!a) return []; return BALPUM.Room.msgs(a.agent, cust().id).then(function (m) { ME.msgs = m || []; return ME.msgs; }); });
+    return BALPUM.Room.myAgent(curAg()).then(function (a) { ME.ag = a; if (!a) return []; if (a.agent !== curAg()) curAg(a.agent); return BALPUM.Room.msgs(a.agent, cust().id).then(function (m) { ME.msgs = m || []; return ME.msgs; }); });
   }
+  function loadList() { return BALPUM.Room.agents().then(function (l) { ME.list = l || []; return ME.list; }).catch(function () { ME.list = []; return []; }); }
+  function seenMine() { if (ME.ag) BALPUM.Room.seenAg(ME.ag.agent); }
+  window.BP_custCurAg = curAg;
   function unreadForCust() { if (!ME.ag) return 0; var seen = new Date(ME.ag.cust_seen || 0).getTime(); return ME.msgs.filter(function (m) { return m.from_agent && new Date(m.created_at).getTime() > seen; }).length; }
   function custNav(on) {
     var n = unreadForCust(), b = function (k, ic, t) { return '<button type="button" data-cn="' + k + '" class="' + (on === k ? "on" : "") + '"><i>' + ic + '</i>' + t + (k === "chat" && n ? '<span class="rm-dot">' + n + '</span>' : '') + '</button>'; };
@@ -172,11 +184,12 @@
   window.showCustHome = function (fromHist) {
     stopPoll(); if (!fromHist) go("c_home");
     app('<div class="loading">불러오는 중…</div>');
-    Promise.all([loadMine(), BALPUM.DB.get("myhome", "main").catch(function () { return null; })]).then(function (r) {
+    Promise.all([loadMine(), BALPUM.DB.get("myhome", "main").catch(function () { return null; }), loadList()]).then(function (r) {
       var a = ME.ag, mh = (r[1] && r[1].data) || {};
+      var live = ME.list.filter(function (x) { return !x.off; });
       if (window.bpTips) setTimeout(function () { bpTips('cust'); }, 900);
-      if (!a) { app(head("연결된 부동산이 없어요", "부동산 사장님께 초대 링크를 받아 주세요") + '<div class="card"><button class="btn" id="chJ">초대 코드 넣기</button><button class="btn ghost" id="chOut">로그아웃</button></div>');
-        $("chJ").onclick = function () { showCustJoin(""); }; $("chOut").onclick = custLogout; return; }
+      if (!a) { app(head("연결된 부동산이 없어요", "부동산 사장님께 초대 링크를 받아 주세요") + '<div class="card"><button class="btn" id="chJ">초대 코드 넣기</button>' + (ME.list.length ? '<button class="btn ghost" id="chAgM">뺀 부동산 다시 더하기</button>' : '') + '<button class="btn ghost" id="chOut">로그아웃</button></div>');
+        $("chJ").onclick = function () { showCustAddCode(""); }; $("chOut").onclick = custLogout; if ($("chAgM")) $("chAgM").onclick = function () { showCustAgents(); }; return; }
       var dd = mh.end ? Math.ceil((new Date(mh.end + "T00:00:00") - new Date(new Date().toDateString())) / 864e5) : null;
       var ls = ME.msgs.filter(function (m) { return m.kind === "listing"; }).slice(-4).reverse();
       var se = secretState(ME.msgs);
@@ -184,6 +197,9 @@
         (se && se.over ? '<div class="rm-alert" id="chSe" style="background:#FFEDD5"><span style="font-size:24px">⏰</span><span style="flex:1"><b>몰래 기간이 끝났어요</b><small>일반 의뢰로 바꿀지, 한 번 더 몰래 맡길지 골라 주세요</small></span><b style="color:#C2410C">고르기 ›</b></div>' : '') +
         '<div class="rm-office"><small>내 부동산</small><b>' + e(a.office || "부동산") + '</b>' + (a.badge ? '<span class="rm-trust">🏅 동네 부동산들이 믿고 같이 하는 사무소</span>' : '') + '<div class="ad">' + e([a.addr, a.ceo ? "대표 " + a.ceo : ""].filter(Boolean).join(" · ")) + '</div>' +
         '<div class="rm-two"><button class="rm-wb" id="chC">💬 상담하기</button>' + ((a.tel || a.mobile) ? '<a class="rm-wb dk" href="tel:' + e(String(a.tel || a.mobile).replace(/[^\d+]/g, "")) + '">📞 ' + e(a.tel || a.mobile) + '</a>' : '<span></span>') + '</div></div>' +
+        (live.length > 1 ? '<div class="rm-ags"><div class="hd"><b>내 부동산 ' + live.length + '곳</b><button type="button" id="chAgM">관리 ›</button></div><div class="ch">' + live.map(function (x) {
+          return '<button type="button" data-ag="' + e(x.agent) + '" class="' + (x.agent === a.agent ? "on" : "") + '">' + (x.main ? '<i>1순위</i>' : '') + e(x.office || "부동산") + (x.unread ? '<span class="rm-dot">' + x.unread + '</span>' : '') + '</button>'; }).join("") + '</div></div>'
+          : (ME.list.length > 1 ? '<div style="text-align:right;margin:-4px 0 8px"><button type="button" id="chAgM" style="border:0;background:none;color:#1E2A78;text-decoration:underline;font-size:13px;cursor:pointer">내 부동산 관리 ›</button></div>' : '')) +
         (dd !== null ? '<div class="rm-alert" id="chD"><span style="font-size:24px">📅</span><span style="flex:1"><b>' + e(mh.kind || "계약") + ' 만기 ' + (dd >= 0 ? dd + "일 남았어요" : (-dd) + "일 지났어요") + '</b><small>연장할지 이사할지 미리 상담받으세요</small></span><b style="color:#B45309">D' + (dd >= 0 ? "-" + dd : "+" + (-dd)) + '</b></div>' : '') +
         '<div class="rm-tiles">' + [["want", "🔍", "집 구해요"], ["sell", "🏷", "집 내놓기"], ["low", "📊", "최저가 확인"], ["repair", "🔧", "수리 요청"], ["move", "🚚", "이사 준비"], ["chat", "💬", "상담"]].map(function (t) {
           return '<button type="button" class="rm-tile" data-t="' + t[0] + '"><i>' + t[1] + '</i>' + t[2] + '</button>'; }).join("") + '</div>' +
@@ -193,10 +209,13 @@
         (ls.length ? '<div class="rm-ls">' + ls.map(function (m) { var b = m.body || {}; return '<div class="rm-lc" data-go="chat"><small>' + e([b.dong, b.room, b.deal].filter(Boolean).join(" · ")) + '</small><b>' + e(b.price || "") + '</b><em>' + e(b.memo || b.name || "") + '</em></div>'; }).join("") + '</div>'
           : '<div class="hint">사장님이 매물을 골라 보내면 여기에 나와요. [집 구해요]로 찾는 집을 알려 주세요.</div>') +
         '<div class="rm-maker">이 앱은 <b>상상을 현실로</b>가 만들었어요 · Made by 정동철<br>발품TOUR 달력 · 직빵 young call 은 <b>개발자의 다른 앱</b>이에요</div>' +
-        '<div style="text-align:center;margin-top:10px"><button class="btn ghost" id="chOut" style="width:auto;padding:8px 18px">로그아웃</button></div>' +
+        '<div style="text-align:center;margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button class="btn ghost" id="chTips" style="width:auto;padding:8px 14px;margin:0">💡 안내 다시 보기</button><button class="btn ghost" id="chOut" style="width:auto;padding:8px 18px;margin:0">로그아웃</button>' + (window.bpExitBtn ? bpExitBtn("width:auto;padding:8px 14px;margin:0") : '') + '</div>' +
         custNav("home"));
       bindNav(); if (window.BP_NOTI) BP_NOTI.afterLogin();
       $("chC").onclick = function () { showCustChat(); };
+      each("[data-ag]", function (b) { b.onclick = function () { curAg(b.getAttribute("data-ag")); showCustHome(true); }; });
+      if ($("chAgM")) $("chAgM").onclick = function () { showCustAgents(); };
+      custAddCheck();
       if ($("chD")) $("chD").onclick = function () { showCustMy(); };
       if ($("chAll")) $("chAll").onclick = function (ev) { ev.preventDefault(); showCustChat(); };
       each(".rm-lc", function (x) { x.onclick = function () { showCustChat(); }; });
@@ -204,9 +223,142 @@
         t === "want" ? showCustWant() : t === "sell" || t === "low" ? showCustSell() : t === "cal" ? showCal() : t === "chat" ? showCustChat() : t === "yc" ? (window.showYC ? showYC() : say("곧 열려요")) : showCustMy(t); }; });
       if ($("chSe")) $("chSe").onclick = function () { showCustChat(); };
       $("chOut").onclick = custLogout;
+      if ($("chTips")) $("chTips").onclick = function () { if (window.bpTipsReset) bpTipsReset("cust"); };
+      if (window.bpExitBind) bpExitBind();
     }).catch(function (er) { app('<div class="card"><div class="err">' + e(msgOf(er)) + '</div><button class="btn" onclick="showCustHome()">다시 해 보기</button></div>'); });
   };
   function custLogout() { if (!confirm("로그아웃할까요? 다시 들어올 때 전화번호와 숫자 6자리가 필요해요.")) return; stopPoll(); BALPUM.Auth.signOut().then(function () { window.BP_CUST = undefined; showLogin("", "in", "로그아웃했어요."); }); }
+
+  /* ---------- v1.8 한 손님 · 여러 부동산 ---------- */
+  function sendTo(ag, kind, body) { return BALPUM.Room.send(ag, cust().id, false, kind, body); }
+  function normP(p) { return String(p || "").replace(/\s+/g, "").replace(/원$/, ""); }
+  function agStates() {      // 부동산마다 지금 맡긴 상태 (몰래 · 일반 · 없음)
+    var live = ME.list.filter(function (x) { return !x.off; });
+    return Promise.all(live.map(function (x) {
+      return BALPUM.Room.msgs(x.agent, cust().id).then(function (m) {
+        var last = null; (m || []).forEach(function (y) { if (!y.from_agent && (y.kind === "sell" || y.kind === "sellend")) last = y; });
+        var st = secretState(m || []);
+        return { ag: x, msgs: m || [], last: last, secret: st && !st.over ? st : null, over: st && st.over ? st : null, selling: !!(last && last.kind === "sell") };
+      }).catch(function () { return { ag: x, msgs: [], last: null, secret: null, over: null, selling: false }; });
+    }));
+  }
+  function ask(title, html, btns) {      // 고르는 창 (버튼 값으로 돌려줌)
+    return new Promise(function (ok) {
+      var d = document.createElement("div"); d.className = "rm-ask";
+      d.innerHTML = '<div class="in" role="dialog" aria-modal="true"><div class="t">' + title + '</div><div class="bd">' + html + '</div>' +
+        btns.map(function (b) { return '<button type="button" class="btn' + (b[2] ? " " + b[2] : "") + '" data-v="' + b[0] + '">' + b[1] + '</button>'; }).join("") + '</div>';
+      document.body.appendChild(d);
+      each(".rm-ask [data-v]", function (b) { b.onclick = function () { d.remove(); ok(b.getAttribute("data-v")); }; });
+    });
+  }
+  // 몰래 맡기기 규칙: 여러 부동산이면 가격은 하나로. 다르면 [모두 같은 가격으로] / [○○에만] / [취소]
+  function secretRule(body) {
+    var me = ME.ag;
+    return agStates().then(function (S) {
+      var others = S.filter(function (x) { return x.ag.agent !== me.agent && x.secret; });
+      var diff = others.filter(function (x) { return normP((x.secret.m.body || {}).price) !== normP(body.price); });
+      if (!diff.length) return sendTo(me.agent, "sell", body).then(function () { return true; });
+      var list = diff.map(function (x) { return '<li><b>' + e(x.ag.office || "부동산") + '</b> · 몰래 ' + e((x.secret.m.body || {}).price || "") + '</li>'; }).join("");
+      return ask("💡 다른 부동산에 다른 가격으로 몰래 맡겨 두었어요",
+        '<ul style="margin:6px 0 8px;padding-left:18px">' + list + '</ul>지금 <b>' + e(me.office || "") + '</b>에는 <b>' + e(body.price) + '</b> 가격으로 맡기려고 해요.<br>' +
+        '<div class="rm-rule" style="margin-top:8px">가격이 다르면 사는 사람이 "거짓말했다"고 의심해 그 집을 안 사요. <b>다른 가격은 한 곳에만</b> 맡길 수 있어요.</div>',
+        [["all", "🔁 모두 같은 가격(" + e(body.price) + ")으로 바꾸기"], ["one", "☝ 다른 부동산 몰래 맡기기 끄고 " + e(me.office || "여기") + "에만", "ghost"], ["no", "취소", "ghost"]]).then(function (v) {
+        if (v === "no") return false;
+        var jobs = [sendTo(me.agent, "sell", body)];
+        diff.forEach(function (x) { var ob = x.secret.m.body || {};
+          jobs.push(v === "all" ? sendTo(x.ag.agent, "sell", { mode: "secret", price: body.price, period: ob.period || body.period, what: body.what || ob.what || "", memo: "가격을 바꿨어요 (몰래 맡긴 부동산 모두 같은 가격)" })
+                                : sendTo(x.ag.agent, "sellend", { choice: "withdraw", what: ob.what || body.what || "", memo: "다른 가격으로 한 곳에만 맡기려고 거둬들여요" })); });
+        return Promise.all(jobs).then(function () { say(v === "all" ? "몰래 맡긴 부동산 모두 " + body.price + "로 맞췄어요" : "다른 부동산은 거둬들이고 " + (me.office || "") + "에만 맡겼어요"); return true; });
+      });
+    });
+  }
+  // 🏁 팔렸어요: 맡긴 곳 모두에게 한 번에
+  function soldAll() {
+    agStates().then(function (S) {
+      var on = S.filter(function (x) { return x.selling; });
+      if (!on.length) { say("지금 맡겨 둔 부동산이 없어요."); return; }
+      if (!confirm("팔렸어요 · 거둬들였어요를 " + on.map(function (x) { return x.ag.office; }).join(", ") + "에 모두 알릴까요?")) return;
+      Promise.all(on.map(function (x) { return sendTo(x.ag.agent, "sellend", { choice: "sold", what: ((x.last || {}).body || {}).what || "" }); }))
+        .then(function () { say("🏁 맡긴 부동산 " + on.length + "곳에 모두 알렸어요. 수고하셨어요!"); showCustHome(); }).catch(function (er) { say(msgOf(er)); });
+    }).catch(function (er) { say(msgOf(er)); });
+  }
+  window.showCustAgents = function () {
+    stopPoll(); go("c_ags");
+    app('<div class="loading">불러오는 중…</div>');
+    loadList().then(agStates).then(function (S) {
+      var byAg = {}; S.forEach(function (x) { byAg[x.ag.agent] = x; });
+      var row = function (a) {
+        var st = byAg[a.agent], sec = st && st.secret, b = sec ? (sec.m.body || {}) : null, lb = st && st.last ? (st.last.body || {}) : {};
+        var stat = a.off ? '<span class="rm-tag off">뺀 부동산</span>' : sec ? '<span class="rm-tag sec">🆘 몰래 ' + e(b.price || "") + ' · ' + ymd(sec.end) + '까지</span>' : st && st.selling ? '<span class="rm-tag gen">📝 일반 의뢰 ' + e(lb.price || "") + '</span>' : '';
+        return '<div class="card rm-agc"><div class="hd"><b>' + (a.main ? '<i class="mn">1순위</i>' : '') + e(a.office || "부동산") + '</b>' + stat + '</div>' +
+          '<div class="hint" style="margin:2px 0 8px">' + e([a.addr, a.tel, a.via ? "들어온 길: " + a.via : ""].filter(Boolean).join(" · ")) + '</div>' +
+          (a.off ? '<button type="button" class="btn ghost" data-on="' + e(a.agent) + '">➕ 다시 더하기</button>' :
+            '<div class="rm-two"><button type="button" class="btn ghost" data-go="' + e(a.agent) + '" style="margin:0">💬 이 부동산 방</button>' + (a.main ? '<span></span>' : '<button type="button" class="btn ghost" data-mn="' + e(a.agent) + '" style="margin:0">⭐ 1순위로</button>') + '</div>' +
+            (sec ? '<div class="rm-two" style="margin-top:6px"><button type="button" class="btn ghost" data-wd="' + e(a.agent) + '" style="margin:0">↩ 거둬들이기</button><button type="button" class="btn ghost" data-gn="' + e(a.agent) + '" style="margin:0">📝 일반 의뢰로 돌리기 (공개)</button></div>'
+                 : '<button type="button" class="btn ghost" data-st="' + e(a.agent) + '" style="margin-top:6px">🆘 이 부동산에 몰래 맡기기 시작</button>') +
+            '<button type="button" class="btn ghost" data-off="' + e(a.agent) + '" style="color:#B91C1C;margin-top:6px">이 부동산 빼기</button>') + '</div>';
+      };
+      app('<div class="top"><button class="back" id="caBk">← 처음</button><h2>🏠 내 부동산</h2></div>' +
+        '<div class="card rm-guide" style="margin-bottom:10px">발품 앱은 한 번만 깔면 돼요. 다른 부동산의 QR · 링크로 들어오면 <b>그 부동산이 여기에 더해져요</b>. 부동산끼리는 서로의 대화를 못 봐요.' +
+        '<div class="rm-rule" style="margin-top:8px"><b>📌 몰래 내놓기</b>여러 곳에 맡길 땐 <b>가격을 하나로</b>. 다른 가격이면 한 곳에만. 팔리면 [🏁 팔렸어요] 한 번이면 모두에게 알려요.</div></div>' +
+        ME.list.map(row).join("") +
+        '<button type="button" class="btn" id="caSold" style="background:#16A34A">🏁 팔렸어요 — 맡긴 곳 모두에 알리기</button>' +
+        '<button type="button" class="btn ghost" id="caAdd">➕ 다른 부동산 초대 코드 넣기</button>' + custNav(""));
+      bindNav(); $("caBk").onclick = function () { showCustHome(); };
+      $("caSold").onclick = soldAll; $("caAdd").onclick = function () { showCustAddCode(""); };
+      var setA = function (ag, act, msg) { BALPUM.Room.agentSet(ag, act).then(function () { if (act === "off" && curAg() === ag) curAg(""); say(msg); showCustAgents(); }).catch(function (er) { say(msgOf(er)); }); };
+      each("[data-on]", function (b) { b.onclick = function () { setA(b.getAttribute("data-on"), "on", "다시 더했어요"); }; });
+      each("[data-mn]", function (b) { b.onclick = function () { setA(b.getAttribute("data-mn"), "main", "1순위로 바꿨어요"); }; });
+      each("[data-off]", function (b) { b.onclick = function () { if (!confirm("이 부동산을 뺄까요? 대화는 그대로 남고, 언제든 [다시 더하기] 할 수 있어요.")) return; setA(b.getAttribute("data-off"), "off", "뺐어요"); }; });
+      each("[data-go]", function (b) { b.onclick = function () { curAg(b.getAttribute("data-go")); showCustChat(); }; });
+      each("[data-st]", function (b) { b.onclick = function () { curAg(b.getAttribute("data-st")); showCustSell(); }; });
+      each("[data-wd]", function (b) { b.onclick = function () { var x = byAg[b.getAttribute("data-wd")], ob = x.secret.m.body || {};
+        if (!confirm(x.ag.office + "에 몰래 맡긴 것을 거둬들일까요?")) return;
+        sendTo(x.ag.agent, "sellend", { choice: "withdraw", what: ob.what || "" }).then(function () { say("거둬들였어요"); showCustAgents(); }).catch(function (er) { say(msgOf(er)); }); }; });
+      each("[data-gn]", function (b) { b.onclick = function () { var x = byAg[b.getAttribute("data-gn")], ob = x.secret.m.body || {};
+        sendTo(x.ag.agent, "sell", { mode: "general", price: ob.price || "", what: ob.what || "", memo: "몰래 말고 일반 의뢰(공개)로 바꿨어요" }).then(function () { say("일반 의뢰로 바꿨어요"); showCustAgents(); }).catch(function (er) { say(msgOf(er)); }); }; });
+    }).catch(function (er) { say(msgOf(er)); });
+  };
+  // 이미 깔린 손님: 다른 부동산 초대 코드로 '더하기' (다시 가입하지 않음)
+  window.showCustAddCode = function (code, via) {
+    stopPoll(); go("c_add");
+    app(head("부동산 더하기", "다른 부동산의 초대 코드를 넣으면 내 부동산에 더해져요") +
+      '<div class="card"><div id="caOf" class="note" style="display:none"></div><label for="caC">초대 코드 (6자리)</label><input id="caC" value="' + e(code || "") + '" maxlength="6" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.2em;font-weight:800">' +
+      '<button class="btn" id="caGo">➕ 내 부동산에 더하기</button><button class="btn ghost" id="caBk">← 처음</button>' +
+      '<div class="hint">이름 · 전화번호는 처음 적은 그대로 그 부동산에 전해져요. 앱을 다시 깔지 않아도 돼요.</div></div>');
+    var look = function () { var c = $("caC").value.trim().toUpperCase(), b = $("caOf"); if (c.length !== 6) { b.style.display = "none"; return; }
+      BALPUM.Room.info(c).then(function (r) { if (!$("caOf")) return; b.style.display = "block";
+        b.innerHTML = !r ? "초대 코드를 찾을 수 없어요." : r.off ? "이 초대는 잠시 멈춰 있어요." : r.mine ? "🏠 <b>" + e(r.office) + "</b>은(는) 이미 내 부동산이에요." : "🏠 <b>" + e(r.office || "부동산") + "</b>이(가) 보냈어요" + (r.tel ? '<br><span class="hint" style="margin:0">' + e(r.tel) + '</span>' : ''); }).catch(function () {}); };
+    $("caC").oninput = look; look();
+    $("caBk").onclick = function () { showCustHome(); };
+    $("caGo").onclick = function () { var c = $("caC").value.trim().toUpperCase(), b = this; if (c.length !== 6) { say("초대 코드 6자리를 넣어 주세요."); return; }
+      b.disabled = true; addDone(c);
+      BALPUM.Room.joinMore(c, via || "링크").then(function (r) { if (r && r.agent) curAg(r.agent); say(r && r.added === false ? "이미 내 부동산이에요" : "더했어요! 이제 이 부동산과도 상담할 수 있어요"); showCustHome(); })
+        .catch(function (er) { b.disabled = false; say(msgOf(er)); }); };
+  };
+  function addDone(c) { try { var a = JSON.parse(localStorage.getItem("bp_add_done") || "[]"); if (a.indexOf(c) < 0) a.push(c); localStorage.setItem("bp_add_done", JSON.stringify(a.slice(-50))); } catch (er) {} }
+  function addSeen(c) { try { return JSON.parse(localStorage.getItem("bp_add_done") || "[]").indexOf(c) >= 0; } catch (er) { return false; } }
+  // 손님 홈을 열 때: 다른 부동산 QR · 링크에서 복사해 둔 코드 / 주소의 ?join= 이 있으면 "더할까요?"
+  var ADDQ = false;
+  function custAddCheck() {
+    if (ADDQ || document.querySelector(".rm-ask")) return;
+    var q = new URLSearchParams(location.search), uc = String(q.get("join") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6), uv = q.get("v") || "";
+    var p = uc ? Promise.resolve({ code: uc, via: uv }) : (window.bpClipJoin ? bpClipJoin().catch(function () { return null; }) : Promise.resolve(null));
+    p.then(function (j) {
+      if (uc) try { history.replaceState(history.state, "", location.pathname); } catch (er) {}
+      if (!j || !j.code || addSeen(j.code)) return;
+      ADDQ = true;
+      return BALPUM.Room.info(j.code).then(function (r) {
+        if (!r || r.off || r.mine) { addDone(j.code); ADDQ = false; return; }
+        return ask("🏠 " + e(r.office || "부동산") + "이(가) 보냈어요", "내 부동산에 더할까요?<br><span class='hint' style='margin:0'>앱은 다시 깔지 않아도 돼요. 지금 쓰는 부동산은 그대로 있어요.</span>",
+          [["yes", "➕ 더하기"], ["no", "안 함", "ghost"]]).then(function (v) {
+          addDone(j.code); ADDQ = false; if (v !== "yes") return;
+          return BALPUM.Room.joinMore(j.code, viaName(j.via)).then(function (x) { if (x && x.agent) curAg(x.agent); say("더했어요! " + (r.office || "") + "과도 상담할 수 있어요"); showCustHome(true); });
+        });
+      });
+    }).catch(function (er) { ADDQ = false; say(msgOf(er)); });
+  }
+  window.bpCustAddCheck = custAddCheck;
 
   /* ---------- 몰래 기간이 끝났는지 (손님이 고를 때까지) ---------- */
   var PMON = { "1개월": 1, "2개월": 2, "3개월": 3 };
@@ -244,12 +396,14 @@
   /* ---------- 말풍선 ---------- */
   function bubble(m, mine) {
     var b = m.body || {}, t = '<small class="t">' + when(m.created_at) + '</small>', cls = "rm-b" + (mine ? " me" : "");
-    if (m.kind === "listing") return '<div class="' + cls + ' card"><span class="k">🏠 추천 매물</span><div>' + e([b.dong, b.room, b.deal].filter(Boolean).join(" · ")) + '</div><div class="big">' + e(b.price || "") + '</div>' + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + (b.name ? '<div class="hint" style="margin:2px 0 0">' + e(b.name) + '</div>' : '') + t + '</div>';
+    if (m.kind === "listing") return '<div class="' + cls + ' card"><span class="k">🏠 추천 매물</span><div>' + e([b.dong, b.room, b.deal].filter(Boolean).join(" · ")) + '</div>' + (b.price_old ? '<div style="color:#64748B"><s style="text-decoration-color:#DC2626;text-decoration-thickness:2px">' + e(b.price_old) + '</s> <b style="font-size:11px;background:#DC2626;color:#fff;border-radius:6px;padding:1px 6px">⬇ 가격 내렸어요</b></div>' : '') + '<div class="big">' + e(b.price || "") + '</div>' + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + (b.name ? '<div class="hint" style="margin:2px 0 0">' + e(b.name) + '</div>' : '') + t + '</div>';
     if (m.kind === "want") return '<div class="' + cls + ' card"><span class="k">🔍 집 구해요</span>' + e([b.area, b.type, b.room, b.budget, b.when].filter(Boolean).join(" · ")) + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + t + '</div>';
     if (m.kind === "lowreq") return '<div class="' + cls + ' card"><span class="k">📊 최저가 정보 요청</span>' + e(b.what || "") + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + t + '</div>';
     if (m.kind === "lowans") return '<div class="' + cls + ' card"><span class="k">📊 같은 집 지금 최저가 (' + e(b.date || "") + ' · 7일간 유효)</span><div class="big">' + e(b.price || "지금 나온 것 없음") + '</div>' + (b.memo ? '<div>' + e(b.memo) + '</div>' : '') + (b.img ? '<img src="' + e(b.img) + '" alt="광고 캡처">' : '') + t + '</div>';
     if (m.kind === "sell") return '<div class="rm-b sell' + (mine ? " me" : "") + (b.mode === "secret" ? " sos" : "") + '">' + (b.mode === "secret" ? '<span class="sosw">🆘 SOS</span><span class="k">몰래 빨리 팔아 주세요</span>' : '<span class="k">📝 일반 의뢰</span>') + '<div class="big">' + e(b.price || "") + '</div>' + e([b.what, b.mode === "secret" && b.period ? "몰래 " + b.period : "", b.memo].filter(Boolean).join(" · ")) + t + '</div>';
-    if (m.kind === "sellend") return '<div class="' + cls + ' card"><span class="k">⏸ 잠시 보류</span>' + e(b.what || "") + ' — 지금은 안 팔래요 (몰래 기간 끝)' + t + '</div>';
+    if (m.kind === "sellend") return b.choice === "sold" ? '<div class="' + cls + ' card" style="border-left:5px solid #16A34A"><span class="k" style="color:#15803D">🏁 팔렸어요 · 거둬들였어요</span>' + e(b.what || "") + ' — 이제 안 내놓아요' + t + '</div>'
+      : b.choice === "withdraw" ? '<div class="' + cls + ' card"><span class="k">↩ 몰래 맡긴 것 거둬들였어요</span>' + e([b.what, b.memo].filter(Boolean).join(" · ")) + t + '</div>'
+      : '<div class="' + cls + ' card"><span class="k">⏸ 잠시 보류</span>' + e(b.what || "") + ' — 지금은 안 팔래요 (몰래 기간 끝)' + t + '</div>';
     if (m.kind === "repair") return '<div class="' + cls + ' card"><span class="k">🔧 수리 요청</span>' + e(b.text || "") + (b.img ? '<img src="' + e(b.img) + '" alt="수리할 곳">' : '') + t + '</div>';
     return '<div class="' + cls + '">' + e(b.text || "").replace(/\n/g, "<br>") + t + '</div>';
   }
@@ -269,10 +423,10 @@
         if (st && st.over) bindEndCard(st, function () { loadMine().then(draw); });
         window.scrollTo(0, document.body.scrollHeight); };
       var send = function (t) { t = String(t || "").trim(); if (!t) return; sendMine("text", { text: t }).then(function () { $("ccT").value = ""; return loadMine(); }).then(draw).catch(function (er) { say(msgOf(er)); }); };
-      draw(); BALPUM.Room.seen(cust().id).catch(function () {});
+      draw(); seenMine();
       $("ccS").onclick = function () { send($("ccT").value); };
       each("[data-q]", function (b) { b.onclick = function () { send(b.getAttribute("data-q")); }; });
-      ME.timer = setInterval(function () { if (!$("ccL")) { stopPoll(); return; } var n = ME.msgs.length; loadMine().then(function () { if (ME.msgs.length !== n) { draw(); BALPUM.Room.seen(cust().id).catch(function () {}); } }); }, 15000);
+      ME.timer = setInterval(function () { if (!$("ccL")) { stopPoll(); return; } var n = ME.msgs.length; loadMine().then(function () { if (ME.msgs.length !== n) { draw(); seenMine(); } }); }, 15000);
     }).catch(function (er) { say(msgOf(er)); });
   };
 
@@ -311,9 +465,10 @@
         '<button type="button" class="rm-ch sec" data-m="secret"><b>🆘 몰래 빨리 팔아 주세요</b><small>최저가와 같거나 낮게</small>광고 없이 조용히<br>오는 손님마다 1순위<br>최저가 바뀌면 알림<br>2주마다 보고서</button></div>' +
         '<div id="csF" style="display:none"><label for="csP">내놓을 가격</label><input id="csP" placeholder="예) 매매 4억 2천">' +
         '<div id="csPer" style="display:none"><label>몰래 맡길 기간</label><div class="rm-pick" id="csPerB">' + ["1개월", "2개월", "3개월"].map(function (p) { return '<button type="button" data-v="' + p + '">' + p + '</button>'; }).join("") + '</div>' +
-        '<div class="hint">기간 중에 다른 부동산에도 내놓으면 몰래는 풀리고 일반 의뢰로 바뀌어요.</div></div>' +
+        '<div class="rm-rule"><b>📌 여러 부동산에 몰래 맡길 때</b>다른 부동산은 내가 누구와 거래하는지 몰라요. 나중에 말썽이 없게, <b>가격은 하나로 똑같이</b> 맡기세요. 같은 가격이 아니면 <b>한 군데만</b> 내놓으세요.<br><small>최저가 근처 같은 가격으로 여러 부동산에 몰래 맡기면, 여러 곳이 발품을 팔아 더 빨리 팔려요.</small></div></div>' +
         '<label for="csM">더 알려 줄 것</label><input id="csM" placeholder="예) 이사 날짜 협의 가능">' +
         '<button class="btn" id="csGo">사장님께 맡기기</button></div></div>' +
+        '<div class="card"><div class="sect" style="margin-top:0">🏁 팔렸어요 · 거둬들이기</div><div class="hint" style="margin-top:0">집이 팔렸거나 더는 안 팔 때 한 번만 누르면, 맡긴 부동산 <b>모두에게</b> 알려 드려요.</div><button type="button" class="btn" id="csSold" style="background:#16A34A">🏁 팔렸어요 — 맡긴 곳 모두에 알리기</button><button type="button" class="btn ghost" id="csAg">🏠 부동산마다 따로 (시작 · 거둬들이기 · 공개)</button></div>' +
         '<div class="card"><div class="sect" style="margin-top:0">내 집, 빨리 잘 팔리는 방법</div><div class="rm-guide">비슷한 집이 많으면 결국 <b>가격이 결정</b>해요. 최저가보다 비싸면 오래 걸리고, 싼 집부터 먼저 정리돼요. ' +
         '"그 집은 우리 집보다 못해서 싸요"라는 말을 많이 하지만, 요즘 손님들은 다 비교해 보고 정해요. <b>같은 가격이면 먼저 맡긴 집을 먼저 보여 드려요.</b> 반드시 팔린다는 약속은 아니에요.</div></div>' + custNav(""));
       bindNav(); $("csBk").onclick = function () { history.back(); };
@@ -324,7 +479,12 @@
       each("#csPerB button", function (b) { b.onclick = function () { S.period = b.getAttribute("data-v"); each("#csPerB button", function (x) { x.classList.toggle("on", x === b); }); }; });
       $("csGo").onclick = function () { var p = $("csP").value.trim(); if (!p) { say("가격을 적어 주세요."); return; }
         if (S.mode === "secret" && !S.period) { say("몰래 맡길 기간을 골라 주세요."); return; }
-        sendMine("sell", { mode: S.mode, price: p, period: S.period || "", what: $("csW").value.trim(), memo: $("csM").value.trim() }).then(function () { say("맡겼어요. 사장님이 확인하고 연락드려요."); showCustChat(); }).catch(function (er) { say(msgOf(er)); }); };
+        var body = { mode: S.mode, price: p, period: S.period || "", what: $("csW").value.trim(), memo: $("csM").value.trim() };
+        var done = function () { say("맡겼어요. 사장님이 확인하고 연락드려요."); showCustChat(); };
+        if (S.mode !== "secret") { sendMine("sell", body).then(done).catch(function (er) { say(msgOf(er)); }); return; }
+        secretRule(body).then(function (ok) { if (ok) done(); }).catch(function (er) { say(msgOf(er)); }); };
+      if ($("csSold")) $("csSold").onclick = function () { soldAll(); };
+      if ($("csAg")) $("csAg").onclick = function () { showCustAgents(); };
     }).catch(function (er) { say(msgOf(er)); });
   };
 
@@ -421,19 +581,21 @@
       var L = AG.links.slice().sort(function (a, b) { var x = last[a.customer], y = last[b.customer]; return (y ? y.id : 0) - (x ? x.id : 0); });
       app('<div class="top"><button class="back" id="roBk">← 처음</button><h2>💬 손님 방</h2></div>' +
         '<button class="btn" id="roInv">➕ 손님 초대하기 (링크 · 문자 · QR)</button>' +
+        '<button class="btn ghost" id="roBan" style="border:2px solid #F97316;color:#C2410C;font-weight:800">🖨 손님 초대 배너 뽑기 · 📲 손님에게 보내기</button>' +
         '<div class="hint">초대받은 손님이 이름·전화번호를 적고 들어오면 여기와 <b>고객관리</b>에 저절로 생겨요. 들어온 날·경로·초대 메모도 같이 남아요.</div>' +
         (L.length ? L.map(function (l) { var m = last[l.customer], n = unreadOf(l);
           var sos = m && !m.from_agent && m.kind === "sell" && (m.body || {}).mode === "secret";
-          return '<div class="rm-row' + (n ? " new" : "") + '" data-c="' + e(l.customer) + '"><span class="av">' + e(String(l.name || "?").slice(0, 1)) + '</span><span class="tx"><b>' + e(l.name) + ' <span class="hint" style="font-weight:400">' + e(l.purpose || "") + '</span></b>' +
+          return '<div class="rm-row' + (n ? " new" : "") + '" data-c="' + e(l.customer) + '"><span class="av">' + e(String(l.name || "?").slice(0, 1)) + '</span><span class="tx"><b>' + e(l.name) + ' <span class="hint" style="font-weight:400">' + e(l.purpose || "") + '</span>' + (l.off ? ' <span class="rm-tag off">손님이 뺐어요</span>' : '') + '</b>' +
             '<small>' + (sos ? '<span class="rm-sos">SOS</span> ' : '') + (endOf(l.customer) ? '<b style="color:#C2410C">⏰ 몰래 기간 끝 · </b>' : '') + e(m ? preview(m) : fmtPhone(l.phone) + " · " + (l.via || "") + " · " + String(l.created_at).slice(0, 10)) + '</small></span>' + (n ? '<span class="rm-nb">새 상담 ' + n + '</span>' : '') + '</div>'; }).join("")
           : '<div class="card"><div class="hint" style="margin:0">아직 연결된 손님이 없어요. 위 [손님 초대하기]로 첫 손님을 초대해 보세요.</div></div>'));
       $("roBk").onclick = function () { showHome(); };
       $("roInv").onclick = function () { showInvite(); };
+      $("roBan").onclick = function () { if (window.showBanner) showBanner(); else say("배너 기능을 불러오지 못했어요"); };
       each(".rm-row", function (r) { r.onclick = function () { showRoom(r.getAttribute("data-c")); }; });
     }).catch(function (er) { say(msgOf(er)); });
   };
   function preview(m) { var b = m.body || {}, who = m.from_agent ? "나: " : "";
-    return who + (m.kind === "listing" ? "🏠 매물 " + (b.price || "") : m.kind === "lowreq" ? "📊 최저가 요청 · " + (b.what || "") : m.kind === "lowans" ? "📊 최저가 답장 " + (b.price || "") : m.kind === "sellend" ? "⏸ 보류 " + (b.what || "") : m.kind === "sell" ? (b.mode === "secret" ? "🆘 몰래 빨리 " : "📝 일반 의뢰 ") + (b.price || "") : m.kind === "repair" ? "🔧 수리 요청 " + (b.text || "") : m.kind === "want" ? "🔍 집 구해요 " + [b.type, b.area].filter(Boolean).join(" ") : (b.text || "")); }
+    return who + (m.kind === "listing" ? "🏠 매물 " + (b.price || "") : m.kind === "lowreq" ? "📊 최저가 요청 · " + (b.what || "") : m.kind === "lowans" ? "📊 최저가 답장 " + (b.price || "") : m.kind === "sellend" ? (b.choice === "sold" ? "🏁 팔렸어요 " : b.choice === "withdraw" ? "↩ 거둬들임 " : "⏸ 보류 ") + (b.what || "") : m.kind === "sell" ? (b.mode === "secret" ? "🆘 몰래 빨리 " : "📝 일반 의뢰 ") + (b.price || "") : m.kind === "repair" ? "🔧 수리 요청 " + (b.text || "") : m.kind === "want" ? "🔍 집 구해요 " + [b.type, b.area].filter(Boolean).join(" ") : (b.text || "")); }
   window.showInvite = function () {
     go("invite");
     app('<div class="top"><button class="back" id="ivBk">← 손님 방</button><h2>➕ 손님 초대</h2></div><div class="card">' +
@@ -511,7 +673,7 @@
             each("#rmLl [data-l]", function (r) { r.onclick = function () { var x = act.filter(function (y) { return String(y.id) === r.getAttribute("data-l"); })[0]; if (!x) return;
               var dong = typeof dongOf === "function" ? dongOf(x) : "";
               var multi = window.L17 && L17.prices(x).length > 1;
-              send("listing", { lid: x.id, name: x.name || "", deal: multi ? "" : x.deal_type || "", price: multi ? L17.priceLine(x) : x.price || "", room: x.room_structure || "", dong: dong, memo: $("rmLm").value.trim() }).then(function () { $("rmX").innerHTML = ""; say("매물을 보냈어요."); }); }; }); };
+              send("listing", { lid: x.id, name: x.name || "", deal: multi ? "" : x.deal_type || "", price: multi ? L17.priceLine(x) : x.price || "", price_old: x.price_old || "", room: x.room_structure || "", dong: dong, memo: $("rmLm").value.trim() }).then(function () { $("rmX").innerHTML = ""; say("매물을 보냈어요."); }); }; }); };
           $("rmQ").oninput = list; list();
         }).catch(function (er) { $("rmX").innerHTML = ""; say(msgOf(er)); });
       };
@@ -535,12 +697,13 @@
     st = st || {}; stopPoll(); stopAg();
     if (window.BP_CUST) {
       if (st.view === "c_chat") showCustChat(true); else if (st.view === "c_sell") showCustSell(true); else if (st.view === "c_my") showCustMy(null, true);
-      else if (st.view === "c_want") showCustWant(); else if (st.view === "cal") showCal(true); else showCustHome(true);
+      else if (st.view === "c_want") showCustWant(); else if (st.view === "cal") showCal(true); else if (st.view === "c_ags") showCustAgents(); else showCustHome(true);
       return true;
     }
     if (st.view === "rooms") { showRooms(true); return true; }
     if (st.view === "room") { showRoom(st.id, true); return true; }
     if (st.view === "invite") { showRooms(true); return true; }
+    if (st.view === "banner") { if (window.showBanner) showBanner(true); else showRooms(true); return true; }
     return false;
   };
   document.addEventListener("DOMContentLoaded", function () {

@@ -33,7 +33,8 @@
   function priceHTML(it) {
     var l = prices(it);
     if (!l.length) return '';
-    return l.map(function (p, i) { return (i ? '<span class="l17-sep">·</span>' : '') + (p.deal ? '<span class="badge b-deal">' + e(p.deal) + '</span>' : '') + e(p.price) + (p.memo ? ' <small class="hint" style="margin:0">' + e(p.memo) + '</small>' : ''); }).join(" ");
+    if (it.price_old && !document.getElementById("l17old")) { var st = document.createElement("style"); st.id = "l17old"; st.textContent = '.l17-old{font-size:.82em;color:#64748B;margin-right:4px}.l17-old s{text-decoration-color:#DC2626;text-decoration-thickness:2px}.l17-old b{font-size:11px;background:#DC2626;color:#fff;border-radius:6px;padding:1px 6px;vertical-align:middle}'; document.head.appendChild(st); }
+    return (it.price_old ? '<span class="l17-old"><s>' + e(it.price_old) + '</s> <b>⬇ 가격 내렸어요</b></span> ' : '') + l.map(function (p, i) { return (i ? '<span class="l17-sep">·</span>' : '') + (p.deal ? '<span class="badge b-deal">' + e(p.deal) + '</span>' : '') + e(p.price) + (p.memo ? ' <small class="hint" style="margin:0">' + e(p.memo) + '</small>' : ''); }).join(" ");
   }
   function hasPhone(it, tel) { tel = dg(tel); if (!tel) return false; return clients(it).some(function (c) { return dg(c.phone) === tel; }) || dg(it.phone) === tel; }
 
@@ -72,6 +73,7 @@
     '.l17-cl{grid-template-columns:96px 1fr 34px}.l17-cl .l17-phone{grid-column:1/3}.l17-cl .l17-cmemo{grid-column:1/3}' +
     '.l17-row select,.l17-row input{margin:0!important;min-width:0}.l17-x{border:1px solid #FCA5A5;background:#FEF2F2;color:#B91C1C;border-radius:10px;height:40px;font-size:18px;font-weight:800;cursor:pointer}' +
     '.l17-row+.l17-row{border-top:1px dashed #E2E8F0;padding-top:6px}.l17-add{border:1.5px dashed #1E2A78;background:#EEF2FF;color:#1E2A78;border-radius:12px;padding:9px;width:100%;font:800 14px "Noto Sans KR",sans-serif;margin-top:8px;cursor:pointer}' +
+    '.l17-old{font-size:.82em;color:#64748B;margin-right:4px}.l17-old s{text-decoration-color:#DC2626;text-decoration-thickness:2px}.l17-old b{font-size:11px;background:#DC2626;color:#fff;border-radius:6px;padding:1px 6px;vertical-align:middle}' +
     '.l17-sep{color:#94A3B8;margin:0 4px}.l17-cli{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:3px 0}.l17-cli .rl{background:#F1F5F9;border-radius:999px;padding:0 8px;font-size:12px;font-weight:800}' +
     '.l17-cli a.mini,.l17-cli button.mini{font-size:12.5px}' +
     '</style>';
@@ -80,7 +82,9 @@
     var cl = clients(it); if (!cl.length) cl = [{}];
     return CSS +
       fold("lf_price", "💰 거래 유형 · 가격", '<div id="l17P">' + pl.map(priceRow).join("") + '</div><button type="button" class="l17-add" id="l17Pa">＋ 가격 추가 (매매 · 전세 · 월세 동시에)</button>' +
-        '<div class="hint">원룸처럼 가격이 여러 개면 줄을 더해요. 첫 줄이 목록 정렬 · 검색 기준이에요.</div>', true, priceLine(it)) +
+        '<div class="hint">원룸처럼 가격이 여러 개면 줄을 더해요. 첫 줄이 목록 정렬 · 검색 기준이에요.</div>' +
+        '<label class="chk" style="margin-top:8px"><input type="checkbox" id="l17Dp"' + (it.price_old ? ' checked' : '') + '> <span>💸 가격 내림 표시 (내리기 전 가격에 줄을 그어 보여 줘요)</span></label>' +
+        '<input id="l17Old" value="' + e(it.price_old || "") + '" placeholder="내리기 전 가격 예) 1억 4천 · 위 가격 칸에는 새 가격" style="' + (it.price_old ? '' : 'display:none') + '">', true, (it.price_old ? "💸 " : "") + priceLine(it)) +
       fold("lf_client", "👤 의뢰인 · 연락처", '<div id="l17C">' + cl.map(clientRow).join("") + '</div><button type="button" class="l17-add" id="l17Ca">＋ 의뢰인 추가 (집주인 · 세입자 …)</button>' +
         '<div class="hint">의뢰인 연락처는 내 매물장에만 보여요. 홍보장 · 손님 안내문 · 공유방에는 나가지 않아요.</div>', true, clients(it).map(function (c) { return [c.role, c.name].filter(Boolean).join(" "); }).join(", "));
   }
@@ -97,11 +101,13 @@
     $("l17Pa").onclick = function () { var l = collectP(); var last = l[l.length - 1] || {}; l.push({ deal: last.deal === "매매" ? "전세" : last.deal === "전세" ? "월세" : (last.deal || "") }); drawP(l); var rs = P.querySelectorAll(".l17-price"); rs[rs.length - 1].focus(); };
     $("l17Ca").onclick = function () { var l = collectC(); l.push({ role: l.length === 1 && l[0].role === "세입자" ? "집주인" : "" }); drawC(l); var rs = C.querySelectorAll(".l17-name"); rs[rs.length - 1].focus(); };
     bindX(); bindFolds();
+    if ($("l17Dp")) $("l17Dp").onchange = function () { $("l17Old").style.display = this.checked ? "" : "none"; if (this.checked && !$("l17Old").value) { var f = collectP()[0] || {}; $("l17Old").value = f.price || ""; } if (this.checked) $("l17Old").focus(); };
     L17._collect = function () {
       var pl = collectP().filter(function (p) { return p.price || p.deal; }), cl = collectC().filter(function (c) { return c.name || c.phone; });
       var deals = pl.map(function (p) { return p.deal; }).filter(function (d, i, a) { return d && a.indexOf(d) === i; });
       return { prices: JSON.stringify(pl), price: (pl[0] || {}).price || "", deal_type: deals.join("·"),
-               clients: JSON.stringify(cl), client_name: (cl[0] || {}).name || "", phone: (cl[0] || {}).phone || "" };
+               clients: JSON.stringify(cl), client_name: (cl[0] || {}).name || "", phone: (cl[0] || {}).phone || "",
+               price_old: $("l17Dp") && $("l17Dp").checked ? ($("l17Old").value || "").trim() : "" };
     };
   }
 

@@ -10,6 +10,7 @@
     var C = window.Capacitor; if (!C) return null;
     try { return (C.Plugins && C.Plugins.BalpumPrint) || (C.registerPlugin ? C.registerPlugin("BalpumPrint") : null); } catch (e) { return null; }
   }
+  window.bpPrintHtml = function (html, name) { return printHtml(html, name); };   // v1.8 배너 인쇄도 같이 씀
   function printHtml(html, name) {
     var P = nativePrinter();
     if (!P || !P.print) return Promise.reject(new Error("이 앱 버전은 핸드폰 인쇄가 안 돼요. 저장한 뒤 PC에서 인쇄해 주세요."));
@@ -21,7 +22,9 @@
     ["{빨강}", "{/빨강}", '<span style="color:#dc2626">', "</span>"],
     ["{박스}", "{/박스}", '<span class="hl-box">', "</span>"],
     ["{파란박스}", "{/파란박스}", '<span class="hl-box hl-blue">', "</span>"],
-    ["{형광}", "{/형광}", '<span class="hl-mark">', "</span>"]
+    ["{형광}", "{/형광}", '<span class="hl-mark">', "</span>"],
+    ["{줄}", "{/줄}", '<span class="hl-strike">', "</span>"],          // v1.8 가운데 줄 긋기 (가격 내림 등)
+    ["{엑스}", "{/엑스}", '<span class="hl-x">', "</span>"]            // v1.8 ✕ 엑스 표시
   ];
   function h(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function markup(raw) {
@@ -72,8 +75,9 @@
     else if (n === 4 && ph.length >= 4) content = '<div class="quad-layout"><div class="row-group"><div class="img-pair">' + img(ph[0], "flyer-img-4") + img(ph[1], "flyer-img-4") + '</div>' + body(F.t1) + '</div>' + boxAt("middle") +
       '<div class="row-group"><div class="img-pair">' + img(ph[2], "flyer-img-4") + img(ph[3], "flyer-img-4") + '</div>' + body(F.t2) + '</div></div>';
     else content = '<div class="text-only-layout">' + boxAt("middle") + body([F.t1, F.t2].filter(Boolean).join("\n")) + '</div>';
-    var head = F.on.title ? '<div class="header-banner">' + h(F.title) + '</div>' : "";
-    var foot = F.on.price ? '<div class="footer-price">' + h(F.price) + mark + '</div>' : (mark ? '<span class="hidmark hidmark-page">No.' + h(F.mark) + '</span>' : "");
+    var head = F.on.title ? '<div class="header-banner">' + markup(F.title) + '</div>' : "";
+    var drop = F.dropOn && F.oldPrice ? '<div class="oldline"><span class="hl-strike">' + markup(F.oldPrice) + '</span> <span class="dropb">⬇ 가격 내렸어요</span></div>' : "";
+    var foot = F.on.price ? '<div class="footer-price">' + drop + markup(F.price) + mark + '</div>' : (mark ? '<span class="hidmark hidmark-page">No.' + h(F.mark) + '</span>' : "");
     return '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>매물 홍보장</title><style>' +
       '@page{size:A4 portrait;margin:4mm}' +
       'body{margin:0;background:#fff;font-family:"맑은 고딕","Malgun Gothic","Noto Sans KR",sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
@@ -92,6 +96,9 @@
       '.hl-box{display:inline-block;max-width:100%;box-sizing:border-box;border:.07em solid #dc2626;background:#fff1f2;color:#b91c1c;border-radius:.25em;padding:.08em .4em;margin:.08em 0;line-height:1.25}' +
       '.hl-blue{border-color:#2563eb;background:#eff6ff;color:#1d4ed8}' +
       '.hl-mark{background:linear-gradient(transparent 55%,#fde047 55%)}' +
+      '.hl-strike{text-decoration:line-through;text-decoration-color:#dc2626;text-decoration-thickness:.1em}' +
+      '.hl-x{display:inline-block;background:linear-gradient(to top right,transparent calc(50% - .06em),#dc2626 calc(50% - .05em),#dc2626 calc(50% + .05em),transparent calc(50% + .06em)),linear-gradient(to top left,transparent calc(50% - .06em),#dc2626 calc(50% - .05em),#dc2626 calc(50% + .05em),transparent calc(50% + .06em))}' +
+      '.oldline{font-size:.5em;line-height:1.2;color:#475569}.oldline .dropb{display:inline-block;font-size:.8em;background:#dc2626;color:#fff;border-radius:.3em;padding:.05em .45em;vertical-align:middle;text-decoration:none}' +
       '.hidmark{position:absolute;right:2.5mm;bottom:1.2mm;font-size:9pt;font-weight:normal;opacity:.55}.hidmark-page{right:3mm;bottom:2mm;color:#64748b}' +
       '@media screen{body{background:#e5e7eb}.page-box{margin-top:10px;box-shadow:0 2px 10px rgba(0,0,0,.25)}}' +
       '</style></head><body><div class="page-box" id="pageBox">' + head + '<div class="content-area">' + boxAt("top") + content + boxAt("bottom") + '</div>' + foot + '</div>' +
@@ -213,7 +220,8 @@
       t2: "", boxText: "", boxBlue: false, boxAt: "middle",
       count: 0, photos: [], on: { title: true, photo: false, box: false, body: true, price: true },
       theme: "red_blue", border: "테마색", borderW: "보통", headSize: 66, bodySize: 60, footSize: 80, photoH: 100, fit: "cover", footColor: "navy",
-      mark: it ? String(it.id) : "", sample: it ? "" : S.name
+      mark: it ? String(it.id) : "", sample: it ? "" : S.name,
+      oldPrice: it && it.price_old ? it.price_old : "", dropOn: !!(it && it.price_old)
     };
   }
   function applySample(F, S, it) {
@@ -269,8 +277,11 @@
         '<label for="fy1">' + (n === 4 ? '본문 (위 사진 아래)' : n === 2 ? '본문 (첫 사진 아래)' : '본문') + '</label><textarea id="fy1" rows="4">' + h(F.t1) + '</textarea>' +
         '<div class="hint">자주 쓰는 말 (누르면 본문에 한 줄 더해져요)</div><div class="stat">' + PHRASES.map(function (p) { return '<button class="chip" data-ph="' + h(p) + '" type="button">+ ' + h(p) + '</button>'; }).join("") + '</div>' +
         (n === 2 || n === 4 ? '<label for="fy2">본문 (' + (n === 4 ? '아래 사진 아래' : '둘째 사진 아래') + ')</label><textarea id="fy2" rows="3">' + h(F.t2) + '</textarea>' : '') +
-        '<div class="hint">글자를 길게 눌러 고른 뒤 꾸미기: </div><div class="stat"><button class="chip" data-w="빨강">빨간 글씨</button><button class="chip" data-w="박스">빨간 박스</button><button class="chip" data-w="파란박스">파란 박스</button><button class="chip" data-w="형광">형광펜</button></div>' +
+        '<div class="hint">글자를 길게 눌러 고른 뒤 꾸미기: </div><div class="stat"><button class="chip" data-w="빨강">빨간 글씨</button><button class="chip" data-w="박스">빨간 박스</button><button class="chip" data-w="파란박스">파란 박스</button><button class="chip" data-w="형광">형광펜</button><button class="chip" data-w="줄" style="text-decoration:line-through;text-decoration-color:#dc2626">줄 긋기</button><button class="chip" data-w="엑스">✕ 엑스</button><button class="chip" data-w="">꾸밈 지우기</button></div>' +
+        '<div class="hint">제목 · 박스 글 · 본문 · 가격 어디서든 글자를 끌어서(길게 눌러) 고르면 아래에 꾸미기 줄이 떠요.</div>' +
         '<label for="fyP">하단 가격</label><input id="fyP" value="' + h(F.price) + '">' +
+        '<label class="chk" style="margin-top:8px"><input type="checkbox" id="fyDrop"' + (F.dropOn ? ' checked' : '') + '> <span>💸 가격 내림 표시 — 내리기 전 가격에 줄을 긋고 "가격 내렸어요"</span></label>' +
+        '<input id="fyOP" value="' + h(F.oldPrice || "") + '" placeholder="내리기 전 가격 예) 1억 4천" style="' + (F.dropOn ? '' : 'display:none') + '">' +
         '<div class="sect">🎨 모양</div><div class="two">' + sel("fyTh", F.theme, [["red_blue", "빨강 제목"], ["blue", "파랑 제목"]]) + sel("fyFC", F.footColor, [["navy", "가격 남색"], ["black", "가격 검정"]]) + '</div>' +
         '<div class="two">' + sel("fyBo", F.border, [["테마색", "테두리 제목색"], ["검정"], ["회색"], ["없음", "테두리 없음"]]) + sel("fyBW", F.borderW, [["얇게"], ["보통"], ["굵게"]]) + '</div>' +
         '<div class="two">' + sel("fyFit", F.fit, [["cover", "사진 꽉 채우기"], ["contain", "사진 전체 보이기"]]) + '<input id="fyPH" type="number" value="' + h(F.photoH) + '" title="사진 높이(mm)"></div>' +
@@ -287,14 +298,39 @@
       var v = function (id) { var e = $(id); return e ? e.value : undefined; };
       F.title = v("fyT"); F.boxText = v("fyB"); F.boxAt = v("fyBA"); F.boxBlue = v("fyBC") === "1"; F.t1 = v("fy1");
       if ($("fy2")) F.t2 = v("fy2");
-      F.price = v("fyP"); F.theme = v("fyTh"); F.footColor = v("fyFC"); F.border = v("fyBo"); F.borderW = v("fyBW"); F.fit = v("fyFit");
+      F.price = v("fyP"); F.oldPrice = v("fyOP") || ""; F.dropOn = $("fyDrop") ? $("fyDrop").checked : !!F.dropOn; F.theme = v("fyTh"); F.footColor = v("fyFC"); F.border = v("fyBo"); F.borderW = v("fyBW"); F.fit = v("fyFit");
       F.photoH = Number(v("fyPH")) || 100; F.headSize = Number(v("fyHS")) || 66; F.bodySize = Number(v("fyBS")) || 60; F.footSize = Number(v("fyFS")) || 80;
       if (!$("fyMk").checked) F.mark = ""; else if (!F.mark) F.mark = it ? String(it.id) : "";
     }
     var lastTa = null;
+    // v1.8 꾸미기: 고른 글자를 {줄}…{/줄} 처럼 감싸기 · w 가 "" 이면 고른 곳의 꾸밈 표시 지우기
+    function deco(ta, w) {
+      var s = ta.selectionStart, e = ta.selectionEnd;
+      if (s === e) { toast("꾸밀 글자를 먼저 골라(길게 눌러) 주세요."); return; }
+      var mid = ta.value.slice(s, e);
+      if (!w) { var clean = mid.replace(/\{\/?(빨강|박스|파란박스|형광|줄|엑스)\}/g, ""); ta.value = ta.value.slice(0, s) + clean + ta.value.slice(e); try { ta.setSelectionRange(s, s + clean.length); } catch (er) {} toast("꾸밈을 지웠어요."); hideBar(); return; }
+      ta.value = ta.value.slice(0, s) + "{" + w + "}" + mid + "{/" + w + "}" + ta.value.slice(e);
+      toast(w === "줄" ? "줄을 그었어요. 미리보기로 확인하세요." : w === "엑스" ? "✕ 엑스를 쳤어요. 미리보기로 확인하세요." : "꾸몄어요. 미리보기로 확인하세요."); hideBar();
+    }
+    function hideBar() { var b = $("fyDeco"); if (b) b.remove(); }
+    function decoBar(ta) {
+      if (!ta || ta.selectionStart === ta.selectionEnd || document.activeElement !== ta) { hideBar(); return; }
+      var b = $("fyDeco");
+      if (!b) { b = document.createElement("div"); b.id = "fyDeco";
+        b.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9990;background:#0F172A;color:#fff;border-radius:999px;padding:6px 8px;display:flex;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.3);font:700 13px 'Noto Sans KR',sans-serif;max-width:calc(100vw - 16px);overflow-x:auto";
+        b.innerHTML = [["줄", '<s style="text-decoration-color:#F87171">줄 긋기</s>'], ["엑스", "✕ 엑스"], ["빨강", '<span style="color:#F87171">빨강</span>'], ["박스", "박스"], ["형광", '<span style="background:#FDE047;color:#000;padding:0 3px">형광</span>'], ["", "지우기"]]
+          .map(function (x) { return '<button type="button" data-dw="' + x[0] + '" style="border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:7px 11px;font:inherit;white-space:nowrap;cursor:pointer">' + x[1] + '</button>'; }).join("");
+        document.body.appendChild(b); }
+      Array.prototype.forEach.call(b.querySelectorAll("[data-dw]"), function (x) {
+        x.onpointerdown = function (ev) { ev.preventDefault(); };
+        x.onmousedown = function (ev) { ev.preventDefault(); };
+        x.onclick = function () { deco(lastTa || ta, x.getAttribute("data-dw")); };
+      });
+    }
     function bind() {
       $("bk").onclick = function () { history.back(); };
-      ["fy1", "fy2"].forEach(function (id) { if ($(id)) $(id).onfocus = function () { lastTa = this; }; });
+      ["fy1", "fy2", "fyT", "fyB", "fyP", "fyOP"].forEach(function (id) { if ($(id)) { $(id).onfocus = function () { lastTa = this; }; ["select", "mouseup", "keyup", "touchend"].forEach(function (k) { $(id).addEventListener(k, function () { setTimeout(function () { decoBar($(id)); }, 30); }); }); $(id).addEventListener("blur", function () { setTimeout(function () { if (!document.activeElement || ["fy1", "fy2", "fyT", "fyB", "fyP", "fyOP"].indexOf(document.activeElement.id) < 0) hideBar(); }, 200); }); } });
+      if ($("fyDrop")) $("fyDrop").onchange = function () { $("fyOP").style.display = this.checked ? "" : "none"; if (this.checked && !$("fyOP").value) { $("fyOP").value = $("fyP").value; $("fyOP").focus(); toast("내리기 전 가격을 적고, 하단 가격에는 새 가격을 적어 주세요."); } };
       Array.prototype.forEach.call(document.querySelectorAll("[data-on]"), function (b) { b.onclick = function () { read(); var k = b.getAttribute("data-on"); F.on[k] = !F.on[k]; if (k === "box" && F.on.box && !F.boxText) toast("박스 글 칸에 글을 써 주세요."); draw(); }; });
       Array.prototype.forEach.call(document.querySelectorAll("[data-n]"), function (b) { b.onclick = function () {
         read(); var k = Number(b.getAttribute("data-n")); F.count = k; F.on.photo = k > 0; F.photoH = PHOTO_H_BY[k]; F.bodySize = BODY_BY[k]; F.headSize = HEAD_BY[k]; F.footSize = FOOT_BY[k];
@@ -305,10 +341,7 @@
         F.photos.push(srcPhotos[Number(im.getAttribute("data-a"))]); draw(); }; });
       Array.prototype.forEach.call(document.querySelectorAll("[data-w]"), function (b) { b.onclick = function () {
         var ta = lastTa || $("fy1"); if (!ta) return;
-        var w = b.getAttribute("data-w"), s = ta.selectionStart, e = ta.selectionEnd;
-        if (s === e) { toast("꾸밀 글자를 먼저 골라(길게 눌러) 주세요."); return; }
-        ta.value = ta.value.slice(0, s) + "{" + w + "}" + ta.value.slice(s, e) + "{/" + w + "}" + ta.value.slice(e);
-        toast("꾸몄어요. 미리보기로 확인하세요."); }; });
+        deco(ta, b.getAttribute("data-w")); }; });
       Array.prototype.forEach.call(document.querySelectorAll("[data-s]"), function (b) { b.onclick = function () {
         read(); var S = SAMPLES.filter(function (x) { return x.name === b.getAttribute("data-s"); })[0]; if (!S) return;
         applySample(F, S, it); draw(); toast("‘" + S.name + "’ 샘플을 넣었어요. 글을 고치고 미리보기를 눌러 보세요."); }; });

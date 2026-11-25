@@ -48,6 +48,8 @@
 
   <a class="btn or" id="web" href="app/"><span class="step" style="background:#fff;color:var(--orange)">1</span>바로 쓰기 (설치 없이 · 아이폰도 OK)</a>
   <a class="btn wh" id="apk" href="balpum-tour.apk" download><span class="step">2</span>안드로이드 앱으로 받기</a>
+  <a class="btn wh" id="have" href="#" style="font-size:15px;background:#EEF2FF;border-color:#C7D2FE;color:#1E2A78">이미 발품 앱이 있어요 → 이 부동산 더하기</a>
+  <div class="copied" id="haveOk">📋 복사했어요. 이제 <b>발품 앱을 열면</b> "이 부동산을 내 부동산에 더할까요?"가 떠요. 앱을 다시 깔지 않아도 돼요.</div>
   <button type="button" id="ihOpen" style="display:block;margin:6px auto 0;background:none;border:0;color:#2563EB;text-decoration:underline;font-size:14px">📱 설치가 막히면? (안내 보기)</button>
   <div class="copied" id="copied">📋 초대 코드를 복사해 두었어요. 앱을 깔고 열면 저절로 들어가요.</div>
 
@@ -81,9 +83,14 @@
 <script>
 (function(){
   var q = new URLSearchParams(location.search), c = String(q.get("c") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6), v = q.get("v") || "";
-  v = /^(qr|sms|kakao|gift)$/.test(v) ? v : "";
+  v = /^(qr|sms|kakao|gift|banner|send|mail)$/.test(v) ? v : "";
   var from = String(q.get("from") || "").slice(0, 20);
   if (v === "gift") { var g = document.getElementById("gift"); g.style.display = "block"; g.textContent = "🎁 " + (from ? from + "님이 " : "") + "직빵 young call 을 선물했어요 — 동네 친구 샘이랑 영어 수다"; }
+  document.getElementById("have").addEventListener("click", function (ev) {
+    ev.preventDefault(); var t = "발품초대:" + c + (v ? "/" + v : ""), ok = function () { document.getElementById("haveOk").style.display = "block"; };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(ok, ok); return; } } catch (er) {}
+    try { var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); } catch (er) {} ok();
+  });
   document.getElementById("apk").addEventListener("click", function () {
     var t = "발품초대:" + c + (v ? "/" + v : "");
     var ok = function () { document.getElementById("copied").style.display = "block"; };
@@ -100,6 +107,7 @@
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(r){ r = Array.isArray(r) ? r[0] : r;
       if (!r || !r.office) { ofc.textContent = "초대 코드를 찾을 수 없어요"; t.textContent = "부동산에 새 초대 링크를 부탁해 주세요."; return; }
+      if (r.off) { ofc.textContent = "이 초대는 잠시 멈춰 있어요"; t.textContent = "부동산에 새 초대 링크를 부탁해 주세요."; return; }
       ofc.textContent = r.office + "이(가) 초대했어요"; t.textContent = [r.ceo ? "대표 " + r.ceo : "", r.tel || "", r.addr || ""].filter(Boolean).join(" · ");
       if (r.badge) { var bd = document.createElement("div"); bd.textContent = "🏅 동네 부동산들이 믿고 같이 하는 사무소";
         bd.style.cssText = "display:inline-block;margin-top:6px;background:#FEF3C7;color:#92400E;border:1px solid #F59E0B;border-radius:999px;padding:3px 12px;font-size:13px;font-weight:800";

@@ -175,6 +175,7 @@
     '#cal .wd{text-align:center;font-size:11px;font-weight:700;padding:6px 0;border-bottom:1px solid var(--line)}#cal .wd.sun{color:var(--red)}#cal .wd.sat{color:var(--blue)}' +
     '#cal .cell{position:relative;min-height:74px;padding:4px 2px;border:0;border-bottom:1px solid var(--line);background:transparent;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;font:inherit;color:inherit}' +
     '#cal .cell.selected{background:var(--sel)}#cal .cell.out{opacity:.28}' +
+    '#cal .cell .albell{position:absolute;right:2px;top:2px;font-size:10.5px;line-height:1;filter:drop-shadow(0 1px 0 rgba(255,255,255,.8))}' +
     '#cal .dw{position:relative;display:grid;place-items:center}' +
     '#cal .dn{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:23px;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;line-height:1}' +
     '#cal .cell.sun .dn,#cal .cell.hol .dn{color:var(--red)}#cal .cell.sat:not(.hol) .dn{color:var(--blue)}#cal .cell.today .dn{background:var(--ink);color:var(--paper)!important}' +
@@ -264,8 +265,11 @@
     V.sheet = ""; document.body.style.overflow = "";
     if (!fromHist && typeof nav === "function") nav("cal");
     window.scrollTo(0, 0);
-    $("app").innerHTML = (document.getElementById("calCss") ? "" : CSS) + '<div class="top bpy"><button class="back" id="calBk">← 처음</button><h2>' + (window.BP_LOGO ? BP_LOGO("cal", 30) : "발품TOUR 달력") + '</h2></div><div id="cal"><div class="loading">달력 펴는 중…</div></div>';
-    $("calBk").onclick = function () { showHome(); };
+    var pc = !(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) && window.bpCalWindow && !window.BP_ONLY_CAL;
+    $("app").innerHTML = (document.getElementById("calCss") ? "" : CSS) + '<div class="top bpy">' + (window.BP_ONLY_CAL ? '' : '<button class="back" id="calBk">← 처음</button>') + '<h2>' + (window.BP_LOGO ? BP_LOGO("cal", 30) : "발품TOUR 달력") + '</h2>' +
+      (pc ? '<button type="button" id="calWin" title="달력만 따로 창으로 띄워 놓고 쓰기" style="margin-left:auto;border:0;background:rgba(30,42,120,.12);color:#1E2A78;border-radius:10px;padding:7px 10px;font:700 13px \'Noto Sans KR\',sans-serif;cursor:pointer">🗗 따로 띄우기</button>' : '') + '</div><div id="cal"><div class="loading">달력 펴는 중…</div></div>';
+    if ($("calBk")) $("calBk").onclick = function () { showHome(); };
+    if ($("calWin")) $("calWin").onclick = function () { window.bpCalWindow(); };
     load().then(shell, function (er) { $("cal").innerHTML = '<div class="hint">' + e((er && er.message) || "불러오지 못했어요") + '</div>'; shell(); });
   };
   function shell() {
@@ -326,6 +330,7 @@
       if (hol) c += '<span class="tag h">' + e(hol.indexOf("대체") === 0 ? "대체휴일" : hol.split(" · ")[0]) + '</span>'; else if (term) c += '<span class="tag t">' + term + '</span>';
       if (C.cfg.tide) { var t = tide(l, C.cfg.sea); c += '<span class="tide' + (t.big ? " cbig" : "") + '">' + t.name + '</span>'; }
       if ((r.ev || []).length) c += '<span class="dots">' + r.ev.slice(0, 3).map(function (x) { return '<i style="background:var(--' + (x.c || "lav") + ')"></i>'; }).join("") + '</span>';
+      if (C.cfg.alBell !== false && (r.ev || []).some(function (x) { return x.al && x.al.on && !x.d; })) c += '<span class="albell" title="' + (C.cfg.alarmOff ? "알람 전체 꺼짐" : "알람 켠 약속") + '">' + (C.cfg.alarmOff ? "🔕" : "🔔") + '</span>';
       var sp = (r.book || []).filter(function (x) { return x.t === "out"; }).reduce(function (s, x) { return s + x.a; }, 0);
       if (sp && !out) c += '<span class="spend">−' + (sp >= 10000 ? (Math.round(sp / 1000) / 10) + "만" : sp.toLocaleString("ko-KR")) + '</span>';
       if (r.memo) c += '<span class="memo' + (r.memoX ? " x" : "") + '">' + e(r.memo) + '</span>';
@@ -474,9 +479,10 @@
         : '<span class="cwhy" style="margin:0">핸드폰 발품 앱에서 약속 ' + (REM.filter(function (o) { return o[0] === +C.cfg.remind; })[0] || REM[3])[1] + ' 울려요</span>') + '</div>' +
       '<div class="crow" style="align-items:center;justify-content:space-between;background:' + (C.cfg.alarmOff ? '#F1F5F9' : '#FEF2F2') + ';border-radius:12px;padding:6px 10px"><span style="font-weight:700">⏰ 약속 알람 ' + (C.cfg.alarmOff ? '<small style="color:#64748B">(전체 꺼짐)</small>' : '') + '</span>' +
         '<button type="button" class="eb" id="cAlAll">' + (C.cfg.alarmOff ? '⏰ 알람 전체 켜기' : '🔕 알람 전체 끄기') + '</button></div>' +
+      '<div class="crow" style="align-items:center;justify-content:space-between;padding:2px 10px"><span style="font-size:13px;color:#64748B">알람 켠 날 달력 칸에 작은 🔔</span><button type="button" class="eb" id="cBell">' + (C.cfg.alBell === false ? '🔔 보이기 켜기' : '🔔 보이기 끄기') + '</button></div>' +
       '<div class="sub2">일정 · 약속 ' + (evs.length ? evs.length + "개" : "") + '</div><div>' + (evs.length ? evs.map(function (x) {
       return '<div class="li' + (x.d ? " done" : "") + '"><span style="display:flex;gap:8px;align-items:center"><span class="cbar" style="background:var(--' + (x.c || "lav") + ')"></span><input type="checkbox" data-evd="' + x.i + '"' + (x.d ? " checked" : "") + ' aria-label="마침"></span>' +
-        '<span class="ctx"><b>' + e(x.t || "하루 종일") + '</b> ' + e(x.x) + (x.p ? "<small>" + e(x.p) + "</small>" : "") + '</span><span style="display:flex;align-items:center;gap:4px">' +
+        '<span class="ctx">' + (x.al && x.al.on && !x.d ? (C.cfg.alarmOff ? '🔕 ' : '🔔 ') : '') + '<b>' + e(x.t || "하루 종일") + '</b> ' + e(x.x) + (x.p ? "<small>" + e(x.p) + "</small>" : "") + '</span><span style="display:flex;align-items:center;gap:4px">' +
         '<button type="button" class="eb" data-eval="' + x.i + '" aria-pressed="' + !!(x.al && x.al.on) + '" title="' + (x.al && x.al.on ? "누르면 알람 끄기" : "누르면 알람 켜기") + '" style="white-space:nowrap' + (x.al && x.al.on ? ';background:#FEE2E2;color:#B91C1C;font-weight:700' : ';opacity:.6') + '">' + (x.al && x.al.on ? "⏰ " + alTxt(x.al) : "⏰ 알람") + '</button>' +
         '<button type="button" class="cx" data-evx="' + x.i + '" aria-label="지우기">×</button></span></div>'; }).join("") : '<div class="cwhy">이날 약속이 없어요. 아래에 적어 보세요.</div>') + '</div>' +
       '<div class="crow"><input class="in" type="time" id="cEvT" aria-label="시각"><input class="in cgrow" id="cEvX" placeholder="약속 (예: 검암역 302호 계약)" aria-label="약속"></div>' +
@@ -502,8 +508,9 @@
       say(dayTitle(V.sel) + " 일정을 넣었어요." + (V.alOn ? " ⏰ 알람 " + alTxt({ lead: V.alLead }) : "")); };
     Array.prototype.forEach.call(q("[data-eval]"), function (b) { b.onclick = function () { var r = D(V.sel), x = r.ev[+b.getAttribute("data-eval")];
       if (x.al && x.al.on) { x.al.on = false; say("⏰ 이 약속 알람을 껐어요"); } else { x.al = { on: true, lead: x.al && x.al.lead !== undefined ? x.al.lead : (V.alLead === undefined ? 10 : V.alLead) }; say("⏰ 알람을 켰어요 · " + alTxt(x.al) + (C.cfg.alarmOff ? " (지금은 알람 전체가 꺼져 있어요)" : "")); }
-      putDay(V.sel, r); panel(); notiLater(); }; });
-    if ($("cAlAll")) $("cAlAll").onclick = function () { C.cfg.alarmOff = !C.cfg.alarmOff; putCfg(); notiLater(); panel(); say(C.cfg.alarmOff ? "🔕 약속 알람을 전체 껐어요 (약속마다 켜 둔 건 기억해요)" : "⏰ 약속 알람을 다시 켰어요"); };
+      putDay(V.sel, r); grid(); panel(); notiLater(); }; });
+    if ($("cBell")) $("cBell").onclick = function () { C.cfg.alBell = C.cfg.alBell === false ? true : false; putCfg(); grid(); panel(); say(C.cfg.alBell === false ? "달력 칸의 🔔를 숨겼어요" : "알람 켠 날에 🔔를 보여요"); };
+    if ($("cAlAll")) $("cAlAll").onclick = function () { C.cfg.alarmOff = !C.cfg.alarmOff; putCfg(); notiLater(); grid(); panel(); say(C.cfg.alarmOff ? "🔕 약속 알람을 전체 껐어요 (약속마다 켜 둔 건 기억해요)" : "⏰ 약속 알람을 다시 켰어요"); };
     $("cEvX").onkeydown = function (ev) { if (ev.key === "Enter") $("cEvA").click(); };
     if ($("cRem")) $("cRem").onchange = function () { C.cfg.remind = +this.value; putCfg(); notiLater(); say(C.cfg.remind < 0 ? "약속 알림을 껐어요" : "약속 " + this.options[this.selectedIndex].text + " 알림이 울려요"); };
     Array.prototype.forEach.call(q("[data-tdd]"), function (b) { b.onchange = function () { var r = D(V.sel); r.todo[+b.getAttribute("data-tdd")].d = b.checked; putDay(V.sel, r); panel(); }; });

@@ -30,7 +30,7 @@
     return '<div class="card"><div class="sect" style="margin-top:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-family:\'Nanum Brush Script\',sans-serif;font-size:30px;color:#1E2A78;font-weight:400">상상을 현실로</span><span class="hint" style="margin:0">Made by 정동철 · 개발자의 다른 앱</span></div>' +
       '<div class="bpfam"><div class="ap bpy">' + BP_LOGO("tour", 32) + '<small>공인중개사 매물장 · 답사 · 손님 방</small><span class="who">공인중개사용</span></div>' +
       '<div class="ap bpy">' + BP_LOGO("cal", 28) + '<small>음력 · 손 없는 날 · 물때 · 약속 다이어리 · 가계부</small><span class="who">누구나</span></div>' +
-      '<div class="ap bpy">' + BP_LOGO("yc", 30) + '<small>동네 친구 샘이랑 영어로 수다</small><span class="who">누구나</span></div></div></div>';
+      '<div class="ap bpy">' + BP_LOGO("yc", 30) + '<small>유학 온 동네 친구 샘이랑 영어 수다</small><span class="who">누구나</span></div></div></div>';
   };
 
   /* ---------- 0-1. 자판이 올라오면 입력칸이 가려지지 않게 (v1.4) ---------- */
@@ -79,7 +79,7 @@
     var C = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Clipboard;
     var rd = C && C.read ? C.read().then(function (r) { return (r && r.value) || ""; }) : Promise.resolve("");   // 웹에서는 붙여넣기 허락 창이 떠서 안 씀
     return Promise.resolve(rd).catch(function () { return ""; }).then(function (t) {
-      var m = /발품초대\s*[:：]?\s*([A-Z0-9]{6})(?:\s*[\/|]\s*(qr|sms|kakao|gift))?/i.exec(String(t || ""));
+      var m = /발품초대\s*[:：]?\s*([A-Z0-9]{6})(?:\s*[\/|]\s*(qr|sms|kakao|gift|banner|send|mail))?/i.exec(String(t || ""));
       return m ? { code: m[1].toUpperCase(), via: (m[2] || "").toLowerCase() } : null;
     });
   };
@@ -109,10 +109,52 @@
       '<div class="by">Made by 정동철 · 상상을 현실로<br><span class="sk">누르면 바로 시작</span></div>';
     document.body.appendChild(d);
     var gone = false;
-    function close() { if (gone) return; gone = true; d.style.opacity = "0"; setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 460); }
+    function close() { if (gone) return; gone = true; d.style.opacity = "0"; setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 460); if (sp2On()) setTimeout(splash2, 200); }
     d.addEventListener("click", close);
     setTimeout(close, reduce ? 1800 : 3900);
   }
+  /* ---------- 1-2. 시작 장면 두 번째 (v1.8): 손님은 왕! 발품 끝! — 시안 19 윗부분이 천천히 지나감 ---------- */
+  function sp2On() {
+    var m = ""; try { m = localStorage.getItem("bp_sp2") || ""; } catch (e) {}
+    if (m === "0") return false;
+    if (m === "day") { var t = new Date().toDateString(), l = ""; try { l = localStorage.getItem("bp_sp2_day"); localStorage.setItem("bp_sp2_day", t); } catch (e) {} return l !== t; }
+    return true;
+  }
+  function splash2() {
+    var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var B = window.BP_BANNER || {}, foot = "icons/foot.png", BR = "font-family:'Nanum Brush Script','Nanum Pen Script',cursive";
+    var lg = function (px) { return '<span style="display:inline-flex;align-items:center;gap:.15em;font-size:' + px + 'px"><img src="' + foot + '" alt="" style="width:1em;height:1em;border-radius:.26em;transform:rotate(-10deg)"><span style="' + BR + ';-webkit-text-stroke:.03em #141414;line-height:1">발품</span><span style="font-family:\'Permanent Marker\',cursive;color:#C8102E;font-size:.47em;transform:rotate(-6deg) translateY(-.25em)">TOUR</span></span>'; };
+    var N = [["소문내기<br>싫어요~", "#FFE8A3", 3, 6, -12, .2], ["조용히<br>팔아 주세요~", "#DCEFD3", 35, 0, 6, .6], ["왜 내 집만<br>안 팔리지~?", "#DCEFD3", 68, 14, 12, 1.0], ["여기저기 시세<br>알아보기 지쳐요", "#FFE8A3", 18, 62, -6, 1.4]];
+    var css = '<style>#bpSp2{position:fixed;inset:0;z-index:100001;background:linear-gradient(160deg,#FFE27A,#FFD43B 55%,#FFC53D);display:flex;align-items:center;justify-content:center;font-family:"Noto Sans KR",sans-serif;color:#141414;transition:opacity .5s;cursor:pointer;overflow:hidden}' +
+      '#bpSp2 .in{width:100%;max-width:430px;padding:0 14px;display:flex;flex-direction:column;align-items:center;text-align:center}' +
+      '#bpSp2 .sky{position:relative;width:100%;height:130px}#bpSp2 .nt{position:absolute;white-space:nowrap;text-align:center;padding:4px 8px;' + BR + ';font-size:clamp(16px,4.6vw,21px);line-height:1.05;border:2px solid #141414;border-radius:3px 14px 3px 14px;box-shadow:2px 3px 0 rgba(0,0,0,.25);opacity:0;animation:sp2In .9s ease-out forwards,sp2Fl 5s ease-in-out infinite}' +
+      '#bpSp2 .k1{' + BR + ';font-size:clamp(44px,14vw,66px);line-height:.95;-webkit-text-stroke:2px #141414;opacity:0;animation:sp2Pop .7s 1.9s cubic-bezier(.2,1.4,.4,1) forwards}' +
+      '#bpSp2 .k2{' + BR + ';font-size:clamp(66px,21vw,100px);line-height:.9;color:#C8102E;-webkit-text-stroke:3px #C8102E;opacity:0;animation:sp2Pop .7s 2.3s cubic-bezier(.2,1.4,.4,1) forwards}' +
+      '#bpSp2 .s{opacity:0;animation:sp2Up .7s ease-out forwards}#bpSp2 .bub{background:#fff;border:3px solid #141414;border-radius:18px;box-shadow:5px 5px 0 #1E2A78;padding:8px 14px;' + BR + ';font-size:clamp(24px,7vw,32px);line-height:1.05;-webkit-text-stroke:1px #141414}' +
+      '#bpSp2 .fr{display:inline-block;background:#141414;color:#FFD43B;' + BR + ';font-size:clamp(24px,7vw,30px);padding:3px 14px 6px;border-radius:12px;box-shadow:4px 4px 0 #C8102E;transform:rotate(-1deg)}' +
+      '#bpSp2 .ch{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}#bpSp2 .ch span{background:#fff;border:2px solid #141414;border-radius:999px;padding:3px 10px;font-weight:800;font-size:13px}' +
+      '#bpSp2 .sk{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:12px;color:#7A4B00}' +
+      '#bpSp2 .gust{stroke-dasharray:40 260;animation:sp2G 3s linear infinite}' +
+      '@keyframes sp2In{from{opacity:0;transform:translateX(-70vw) rotate(-30deg)}to{opacity:1;transform:translateX(0) rotate(var(--r))}}' +
+      '@keyframes sp2Fl{0%,100%{translate:0 0}50%{translate:4px -8px}}@keyframes sp2Pop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1) rotate(-2deg)}}' +
+      '@keyframes sp2Up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}@keyframes sp2G{0%{stroke-dashoffset:300}100%{stroke-dashoffset:0}}' +
+      '@media (prefers-reduced-motion:reduce){#bpSp2 *{animation-duration:.01s!important;animation-delay:0s!important}}</style>';
+    var d = document.createElement("div"); d.id = "bpSp2"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", "손님은 왕! 발품 끝!");
+    d.innerHTML = css + '<div class="in"><div class="sky">' + (B.wind ? B.wind("100%", 130) : '') +
+      N.map(function (n) { return '<div class="nt" style="left:' + n[2] + '%;top:' + n[3] + 'px;background:' + n[1] + ';--r:' + n[4] + 'deg;transform:rotate(' + n[4] + 'deg);animation-delay:' + n[5] + 's,' + (n[5] + .9) + 's">' + n[0] + '</div>'; }).join("") + '</div>' +
+      '<div class="k1">손님은 왕!</div><div class="k2">발품 끝!</div>' +
+      '<div class="s" style="animation-delay:3.1s;margin-top:8px;font-weight:900;font-size:clamp(16px,4.8vw,20px);display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center">손님은 <span style="background:#fff;border:3px solid #141414;border-radius:12px;padding:1px 8px 3px 5px;box-shadow:3px 3px 0 #C8102E">' + lg(28) + '</span><span style="white-space:nowrap">만 <span style="color:#C8102E">내려받으시면</span> 됩니다</span></div>' +
+      '<div class="s" style="animation-delay:4s;display:flex;align-items:flex-end;gap:8px;margin-top:10px"><div class="bub">분부만 내리시옵소서,<br><span style="color:#1E2A78;-webkit-text-stroke-color:#1E2A78">발품은 저희가<br>팔겠사옵니다.</span></div><div style="width:78px;height:102px;flex:none">' + (B.naesi || '') + '</div></div>' +
+      '<div class="s" style="animation-delay:5.1s;margin-top:12px"><span class="fr">앱 하나에 세 가지가 무료</span><div class="ch"><span>우리 집 일</span><span>발품TOUR 달력</span><span>직빵 young call</span></div>' +
+      '<div style="margin-top:10px;font-weight:900;color:#1E2A78">📱 핸드폰 속 집 앞 부동산</div></div></div><div class="sk">누르면 건너뛰기</div>';
+    document.body.appendChild(d);
+    var gone = false;
+    function close() { if (gone) return; gone = true; d.style.opacity = "0"; setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 520); }
+    d.addEventListener("click", close);
+    setTimeout(close, reduce ? 2500 : 7600);
+  }
+  window.bpSplash2 = splash2;
+
   var shown = false;
   try { shown = sessionStorage.getItem("bp_splash") === "1"; sessionStorage.setItem("bp_splash", "1"); } catch (e) {}
   if (!shown) { if (document.body) splash(); else document.addEventListener("DOMContentLoaded", splash); }

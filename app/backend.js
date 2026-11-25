@@ -186,9 +186,9 @@
   /* ======================= 매물 ======================= */
   // v1.7: prices(가격 여러 개) · clients(의뢰인 여러 명) · note(비고) — JSON 글자로 저장, 예전 칸(price · deal_type · client_name · phone)은 첫 줄로 같이 채움
   var LISTING_KEYS = ["date", "name", "price", "deal_type", "location", "client_name", "phone", "room_structure", "password",
-                      "status", "dong", "direction", "mgmt_fee", "mgmt_items", "meters", "prices", "clients", "note"];
+                      "status", "dong", "direction", "mgmt_fee", "mgmt_items", "meters", "prices", "clients", "note", "price_old"];
   var APP_EDIT_KEYS = ["name", "price", "deal_type", "location", "client_name", "phone", "room_structure", "password",
-                       "status", "dong", "direction", "mgmt_fee", "mgmt_items", "meters", "prices", "clients", "note"];
+                       "status", "dong", "direction", "mgmt_fee", "mgmt_items", "meters", "prices", "clients", "note", "price_old"];
   var PHOTO_MAX_CHARS = 45000, PHOTO_MAX_COUNT = 12;
 
   function listingObj(row) {
@@ -333,7 +333,7 @@
     return Promise.all([custList(), listListings()]).then(function (a) {
       return { customers: a[0], listings: a[1].map(function (x) {
         return { id: x.id, name: x.name, price: x.price, deal_type: x.deal_type, location: x.location, room_structure: x.room_structure,
-                 status: x.status, dong: x.dong, direction: x.direction, client_name: x.client_name, phone: x.phone, prices: x.prices, clients: x.clients }; }) };
+                 status: x.status, dong: x.dong, direction: x.direction, client_name: x.client_name, phone: x.phone, prices: x.prices, clients: x.clients, price_old: x.price_old }; }) };
     });
   };
   API.appCustSave = function (c) {
@@ -705,7 +705,16 @@
       return Auth.signIn(custEmail(phone), pin).then(function () { ACCOUNT = null; return true; }, function (e) {
         throw err(/맞지 않아요/.test(e.message) ? "전화번호나 숫자 비밀번호가 맞지 않아요." : e.message); });
     },
-    myAgent: function () { return rpc("my_agent"); },
+    myAgent: function (ag) {                   // v1.8: 부동산이 여럿이면 고른 곳 (서버가 예전이면 1순위 하나)
+      if (!ag) return rpc("my_agent");
+      return rpc("my_agent_of", { ag: ag }).catch(function () { return rpc("my_agent"); });
+    },
+    agents: function () { return rpc("my_agents", {}).catch(function () { return rpc("my_agent").then(function (a) { return a ? [Object.assign({ main: true, off: false }, a)] : []; }); }); },
+    agentSet: function (ag, act) { return rpc("my_agent_set", { ag: ag, act: act }); },
+    joinMore: function (code, via) { return rpc("join_more", { c: String(code || "").toUpperCase(), via: via || "" }); },
+    seenAg: function (ag) { return rpc("mark_seen_ag", { ag: ag }).catch(function () {}); },
+    banner: function () { return rpc("banner_invite", {}); },
+    bannerSet: function (off) { return rpc("banner_invite_set", { off_: !!off }); },
     links: function () { return rest("GET", "links?select=*&order=created_at.desc"); },
     msgs: function (agent, customer, after) {
       return rest("GET", "msgs?select=*&agent=eq." + enc(agent) + "&customer=eq." + enc(customer) + (after ? "&id=gt." + enc(after) : "") + "&order=id.asc");
