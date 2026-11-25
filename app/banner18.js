@@ -88,12 +88,20 @@
   }
   function slogan(k) { return '<div style="text-align:center;font-weight:900;font-size:' + Math.round(15 * k) + 'px;letter-spacing:.02em;color:#1E2A78;margin-top:' + Math.round(6 * k) + 'px">📱 핸드폰 속 집 앞 부동산</div>'; }
   // 아래 띠: 사무소 (고른 것만) / 우편용 (상호 없이)
+  function tel(t) {   // 0325690014 → 032-569-0014 · 01047888605 → 010-4788-8605
+    var d = String(t || "").replace(/\D/g, "");
+    if (/^02/.test(d)) return d.length === 9 ? d.replace(/^(02)(\d{3})(\d{4})$/, "$1-$2-$3") : d.length === 10 ? d.replace(/^(02)(\d{4})(\d{4})$/, "$1-$2-$3") : t;
+    if (/^1\d{3}/.test(d) && d.length === 8) return d.replace(/^(\d{4})(\d{4})$/, "$1-$2");
+    if (d.length === 10) return d.replace(/^(\d{3})(\d{3})(\d{4})$/, "$1-$2-$3");
+    if (d.length === 11) return d.replace(/^(\d{3})(\d{4})(\d{4})$/, "$1-$2-$3");
+    return t;
+  }
   function band(o, k, pad) {
     var s = o.show || {}, maker = '<div style="margin-top:' + Math.round(6 * k) + 'px;font-size:' + Math.round(11 * k) + 'px;color:#E5E9FF"><span class="mk">앱 제작</span> 상상을 현실로 · Made by 정동철</div>';
     if (o.mail || !o.office) return '<div class="band" style="padding:' + pad + '"><div style="font-size:' + Math.round(20 * k) + 'px;font-weight:900">발품 TOUR <span class="y2" style="font-size:' + Math.round(14 * k) + 'px">· 무료 · 안드로이드 · 아이폰</span></div>' +
       '<div style="font-size:' + Math.round(13 * k) + 'px;color:#E5E9FF">부동산 · 달력 · 영어를 앱 하나로 · 깔면 누가 보냈는지 앱에서 보여요</div>' + maker + '</div>';
     var n = ["ceo", "tel", "mobile", "email"].filter(function (x) { return s[x] && o[x]; }).length, z = n > 3 ? .9 : 1;
-    var ln2 = [s.tel && o.tel ? "☎ " + h(o.tel) + ' <span style="font-size:.75em">(유선)</span>' : "", s.mobile && o.mobile ? "휴대폰 " + h(o.mobile) : ""].filter(Boolean).join(" · ");
+    var ln2 = [s.tel && o.tel ? "☎ " + h(tel(o.tel)) + ' <span style="font-size:.75em">(유선)</span>' : "", s.mobile && o.mobile ? "휴대폰 " + h(tel(o.mobile)) : ""].filter(Boolean).join(" · ");
     return '<div class="band" style="padding:' + pad + '"><div style="font-size:' + Math.round(20 * k * z) + 'px;font-weight:900;line-height:1.25">' + h(o.office) + (s.ceo && o.ceo ? ' <span style="font-size:.75em;font-weight:700;color:#E5E9FF">대표 ' + h(o.ceo) + '</span>' : '') + '</div>' +
       (ln2 ? '<div class="y2" style="font-size:' + Math.round(16 * k * z) + 'px;font-weight:900">' + ln2 + '</div>' : '') +
       (s.email && o.email ? '<div style="font-size:' + Math.round(13 * k * z) + 'px;font-weight:700;color:#E5E9FF">이메일 ' + h(o.email) + '</div>' : '') + maker + '</div>';
@@ -126,20 +134,22 @@
       '<style>' + CSS + pageCss + 'html,body{margin:0;background:#E5E7EB;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{width:' + w + 'px;height:' + h_ + 'px;margin:12px auto;box-shadow:0 2px 12px rgba(0,0,0,.25)}' +
       '.mid{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;align-items:center}.midin{display:flex;flex-direction:column;width:100%}.bot{flex:none}' +
       '@media print{html,body{background:#fff}.pg{margin:0;box-shadow:none}.bpb .fly,.bpb .gust{animation:none!important}.bpb .gust{stroke-dasharray:none}}</style></head><body>' + body +
-      '<script>function shrink(){var m=document.querySelector(".mid"),i=document.querySelector(".midin");if(!m||!i)return;i.style.zoom=1;var r=m.clientHeight/i.scrollHeight;if(r<1)i.style.zoom=Math.max(.55,r-.01)}' +
+      '<script>var SK=0;function shrink(){if(SK)return;SK=1;var m=document.querySelector(".mid"),i=document.querySelector(".midin");if(!m||!i){SK=0;return}i.style.zoom=1;var r=m.clientHeight/i.scrollHeight;if(r<1)i.style.zoom=Math.max(.5,r-.015);SK=0}' +
       'function fit(){var b=document.querySelector(".pg");if(!b)return;b.style.zoom=1;shrink();var z=Math.min(1,(innerWidth-16)/b.offsetWidth);b.style.zoom=Math.max(.15,z)}' +
-      'addEventListener("load",fit);addEventListener("resize",fit);if(document.fonts)document.fonts.ready.then(fit);setTimeout(fit,60);addEventListener("beforeprint",function(){document.querySelector(".pg").style.zoom=1;shrink()});addEventListener("afterprint",fit);<\/script></body></html>';
+      'fit();addEventListener("load",fit);addEventListener("resize",fit);if(document.fonts){document.fonts.ready.then(fit);document.fonts.addEventListener&&document.fonts.addEventListener("loadingdone",fit)}[60,300,800,1500].forEach(function(t){setTimeout(fit,t)});' +
+      'if(window.ResizeObserver){var ro=new ResizeObserver(function(){shrink()});var mi=document.querySelector(".midin");if(mi)ro.observe(mi)}' +
+      'addEventListener("beforeprint",function(){document.querySelector(".pg").style.zoom=1;shrink()});if(window.matchMedia){var mq=matchMedia("print");mq.addListener&&mq.addListener(function(e){if(e.matches){document.querySelector(".pg").style.zoom=1;shrink()}})}addEventListener("afterprint",fit);<\/script></body></html>';
   }
   /* ---------- A4 (시안 20 모양: 출력용 · 우편용) ---------- */
   function a4(o) {
     var k = 1.5, W = 794;
     var body = '<div class="pg bpb still" style="width:794px;height:1123px">' +
-      head(o, 1.45, "30px 46px 0") + '<div class="mid"><div class="midin">' +
-      '<div style="position:relative;height:170px;flex:none">' + wind(W, 170, 5) + notes(1.2, W) + '</div>' +
-      kingEnd(1.15) + onlyDown(o, 1.35) + naesi(1.1) +
-      '<div style="position:relative;padding:4px 40px 0;display:flex;flex-direction:column;align-items:center;gap:10px">' + freeBadge(1.3) + three(1.1, true) + slogan(1.25) + '</div></div></div>' +
-      '<div class="bot"><div style="margin:10px 46px 14px">' + qrBox(o, 1.3, o.mail ? '우리 동네 부동산이 보낸 선물이에요.<br><span style="color:#C8102E">깔면 누가 보냈는지 앱에서 보여요.</span>' : '') + '</div>' +
-      band(o, 1.3, "14px 46px 16px") + '</div></div>';
+      head(o, 1.3, "24px 46px 0") + '<div class="mid"><div class="midin">' +
+      '<div style="position:relative;height:150px;flex:none">' + wind(W, 150, 5) + notes(1.1, W) + '</div>' +
+      kingEnd(1.0) + onlyDown(o, 1.2) + naesi(0.95) +
+      '<div style="position:relative;padding:2px 40px 6px;display:flex;flex-direction:column;align-items:center;gap:8px">' + freeBadge(1.15) + three(1.0, true) + slogan(1.1) + '</div></div></div>' +
+      '<div class="bot"><div style="margin:8px 46px 12px">' + qrBox(o, 1.15, o.mail ? '우리 동네 부동산이 보낸 선물이에요.<br><span style="color:#C8102E">깔면 누가 보냈는지 앱에서 보여요.</span>' : '') + '</div>' +
+      band(o, 1.15, "12px 46px 14px") + '</div></div>';
     return doc(o.mail ? "발품 우편용 A4" : "발품 손님 초대 배너 A4", 794, 1123, '@page{size:A4 portrait;margin:0}', body);
   }
   /* ---------- X배너 60×180cm (시안 17) ---------- */

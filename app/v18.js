@@ -48,7 +48,8 @@
     $("bnBk").onclick = function () { if (window.showRooms) showRooms(); else showHome(); };
     Promise.all([BALPUM.Room.banner(), BALPUM.DB.setting("banner", {}).catch(function () { return {}; }), footData()]).then(function (r) {
       BN = { inv: r[0] || {}, cfg: r[1] || {} };
-      var c = BN.cfg; c.show = c.show || { ceo: true, tel: true, mobile: false, email: false };
+      var c = BN.cfg; c.show = c.show || { ceo: true, tel: true, mobile: true, email: false };
+      if (!c.v182) { c.show.mobile = true; c.v182 = 1; }      // v1.8.2: 대표 핸드폰 번호도 처음부터 넣기 (끌 수 있음)
       drawBanner();
     }).catch(function (er) {
       $("app").innerHTML = '<div class="top"><button class="back" id="bnBk">← 손님 방</button><h2>🖨 손님 초대 배너</h2></div><div class="card"><div class="err">' + e(msgOf(er)) + '</div><div class="hint">서버(SQL)를 v1.8 로 바꿨는지 확인해 주세요.</div></div>';
@@ -99,7 +100,7 @@
     var printDoc = function (html, name, w) {
       if (window.bpPrintHtml && NATIVE) { bpPrintHtml(html, name).catch(function (er) { say(msgOf(er)); }); return; }
       if (!w || w.closed) { say("팝업이 막혔어요. 주소창 오른쪽에서 팝업 허용을 눌러 주세요."); return; }
-      html = html.replace("</body>", '<div style="position:fixed;right:12px;top:12px;display:flex;gap:6px" class="noprint"><button onclick="print()" style="padding:10px 16px;font-size:15px;font-weight:800;background:#F97316;color:#fff;border:0;border-radius:10px;cursor:pointer">🖨 인쇄 · PDF로 저장</button></div><style>@media print{.noprint{display:none}}</style></body>');
+      html = html.replace("</body>", '<div style="position:fixed;right:12px;top:12px;display:flex;gap:6px" class="noprint"><button onclick="print()" style="padding:10px 16px;font-size:15px;font-weight:800;background:#F97316;color:#fff;border:0;border-radius:10px;cursor:pointer">🖨 인쇄 · PDF로 저장</button></div><style>@media print{.noprint{display:none!important}}</style></body>');
       try { w.location.href = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" })); } catch (er) { w.document.open(); w.document.write(html); w.document.close(); }
     };
     var mk = function (kind) { return function () { var b = this; b.disabled = true;
@@ -186,24 +187,46 @@
   /* =================================================================
      4. 💡 첫 화면 안내 — 옮기기(끌기) · 접기/펴기 · 닫기 · 일주일 안 보기 · 다시 보기
      ================================================================= */
+  // 화면마다 처음 안내 (첫 화면 · 손님 · 답사 · 달력 · 홍보장) — 같은 모양 · 같은 손잡이
+  var GUIDES = {
+    agent: { title: "💡 발품 쓰기 전에 꼭 보세요", items: [
+      ["🔔", "알림 허용", "처음에 \"알림을 허용할까요?\"가 뜨면 <b>[허용]</b>. 손님 상담 · 공유방 · 약속 알람이 소리로 와요."],
+      ["⬇", "새 앱 받는 법", "홈페이지(초대 페이지) → <b>[안드로이드 앱으로 받기]</b> → 받은 파일 열기 → <b>[업데이트]</b>. 지우지 않고 덮어 깔면 자료 · 로그인이 그대로예요."],
+      ["♻", "지웠다 다시 깔았다면", "앱을 <b>한 번 열어야</b> 알림이 다시 등록돼요. 손님은 [전에 들어왔어요]에 같은 전화번호 + 숫자 6자리면 예전 방 그대로."],
+      ["🌐", "바로 쓰기(웹)는", "앱을 닫으면 푸시 알림 소리가 오지 않아요. 소리 알림은 <b>안드로이드 앱</b>에서만 돼요."],
+      ["⏻", "끄기", "앱을 끄려면 첫 화면 아래 <b>[⏻ 발품 끄기]</b> 또는 첫 화면에서 <b>[뒤로] 두 번</b>."]] },
+    cust: { title: "💡 발품 쓰기 전에 꼭 보세요", items: [
+      ["🏠", "부동산이 여러 곳이어도", "앱은 <b>한 번만</b> 깔면 돼요. 다른 부동산 QR을 찍으면 그 부동산이 <b>내 부동산</b>에 더해져요."],
+      ["🆘", "몰래 내놓기", "여러 곳에 맡길 땐 <b>가격을 하나로</b>. 다른 가격이면 한 곳에만. 팔리면 [🏁 팔렸어요] 한 번이면 모두에게 알려요."],
+      ["🔔", "알림 허용", "\"알림을 허용할까요?\"가 뜨면 <b>[허용]</b>. 사장님 답장이 소리로 와요."],
+      ["♻", "다시 깔았다면", "[전에 들어왔어요]에 같은 전화번호 + 숫자 6자리면 예전 방 그대로예요."]] },
+    tour: { title: "🧭 답사 길안내 쓰는 법", again: "길안내 안내 다시 보기", items: [
+      ["🏠", "한 집씩", "지금 집 → 다음 집. 집마다 [🧭 길안내]를 눌러요. 길안내가 끝나면 핸드폰 <b>[뒤로]</b>로 답사 화면에 돌아와요."],
+      ["🧭", "전체 동선", "출발지 → 1번 → 2번 … 순서대로 <b>한 번에</b> 안내. <b>네이버지도</b>는 들르는 곳 <b>5곳까지</b>, <b>카카오맵</b>은 <b>2곳까지</b> 한 번에 넘겨요. 더 많으면 [다음 묶음 길안내]."],
+      ["🗺", "길안내 앱 3가지", "<b>카카오맵</b> · <b>네이버지도</b> · <b>웹 지도</b>(앱이 없을 때). [🧭 길안내 앱 바꾸기]로 바꾸고, 길안내 단추를 <b>길게 누르면</b> 다시 골라요."],
+      ["📍", "출발지", "지도 화면에서 🏢 사무소 / 📍 지금 위치 중에서 골라요. 본 집(✔)은 전체 동선에서 빠져요."]] },
+    cal: { title: "📅 달력 쓰는 법", again: "달력 안내 다시 보기", items: [
+      ["⏰", "울리는 알람 (약속마다)", "약속 다이어리에서 약속 줄 오른쪽 <b>[⏰ 알람]</b>을 눌러 빨갛게(⏰ 10분 전) 켜요. 새 약속은 아래 <b>[⏰ 알람 켜기]</b>에 체크하고 [추가]. 1분 간격 3번 · [끄기] · [5분 뒤 다시]."],
+      ["🔔", "미리 알림 (모든 약속)", "모든 약속을 N분 전에 한 번 '띵' 알려 줘요. 이건 달력 칸에 표시가 안 나와요."],
+      ["📝", "메모 · 포스트잇 알람", "날짜를 누르고 메모 · 포스트잇 아래 <b>[⏰ 알람 켜기]</b> → 시각. 그 시각에 울려요."],
+      ["🗓", "달력 칸의 ⏰", "알람을 켠 날은 날짜 칸 오른쪽 위에 <b>⏰ + 시각</b>. [🔕 알람 전체 끄기]면 흐리게. [⏰ 보이기 끄기]로 숨겨요."],
+      ["⏰", "알람 시계", "도구줄 <b>[⏰ 알람 시계]</b> — 시각 · 요일(매일 · 평일 · 주말) · 켜기/끄기. 자다가도 깨도록 크게 울려요."],
+      ["💰", "가계부 · 📦 택배", "도구줄 [💰 가계부] · [📦 택배]. 자료는 내 계정에 저장돼 핸드폰 · PC 같이 보여요."]] },
+    flyer: { title: "📢 홍보장 쓰는 법", again: "홍보장 안내 다시 보기", items: [
+      ["✏", "꾸미기는 단추로", "박스 · 빨강 · 형광 · <s>줄 긋기</s> · ✕ 엑스는 <b>글자를 끌어서(길게 눌러) 고른 뒤 단추</b>를 누르면 생겨요. 쓰는 칸에도 꾸민 모양 그대로 보여요."],
+      ["✍", "글은 마음대로", "박스 · 줄 안의 글자도 그냥 고쳐 쓰면 돼요. 꾸밈을 없애려면 글자를 고르고 <b>[지우기]</b>."],
+      ["☑", "위 칩 줄", "[상단 제목] [사진] [<b>박스</b>] [본문] [하단 가격] 중 <b>✔ 켜진 것만</b> 홍보장에 나와요. 박스 글 칸에 쓰면 [박스]가 저절로 켜져요."],
+      ["💸", "가격 내림", "[하단 가격] 아래 <b>💸 가격 내림 표시</b> 체크 → 내리기 전 가격에 줄이 그어지고 \"가격 내렸어요\"."],
+      ["👀", "다 쓰면", "<b>[👀 미리보기]</b>로 확인하고 [🖨 인쇄] · [💾 저장]."]] }
+  };
+  window.bpGuide = function (who, force) { return window.bpTips(who, force); };
+  window.bpGuideAgain = function (who) { return window.bpTipsReset(who); };
   window.bpTips = function (who, force) {
     who = who || "agent";
     var key = "bp_tips_" + who, until = +ls(key) || 0;
     if (!force && (Date.now() < until || $("bpTips") || sessionStorage.getItem(key))) return;
     if ($("bpTips")) $("bpTips").remove();
-    var items = [
-      ["🔔", "알림 허용", "처음에 \"알림을 허용할까요?\"가 뜨면 <b>[허용]</b>. 손님 상담 · 공유방 · 약속 알람이 소리로 와요."],
-      ["⬇", "새 앱 받는 법", "홈페이지(초대 페이지) → <b>[안드로이드 앱으로 받기]</b> → 받은 파일 열기 → <b>[업데이트]</b>. 지우지 않고 덮어 깔면 자료 · 로그인이 그대로예요."],
-      ["♻", "지웠다 다시 깔았다면", "앱을 <b>한 번 열어야</b> 알림이 다시 등록돼요. 손님은 [전에 들어왔어요]에 같은 전화번호 + 숫자 6자리면 예전 방 그대로."],
-      ["🌐", "바로 쓰기(웹)는", "앱을 닫으면 푸시 알림 소리가 오지 않아요. 소리 알림은 <b>안드로이드 앱</b>에서만 돼요."],
-      ["⏻", "끄기", "앱을 끄려면 첫 화면 아래 <b>[⏻ 발품 끄기]</b> 또는 첫 화면에서 <b>[뒤로] 두 번</b>."]
-    ];
-    if (who === "cust") items = [
-      ["🏠", "부동산이 여러 곳이어도", "앱은 <b>한 번만</b> 깔면 돼요. 다른 부동산 QR을 찍으면 그 부동산이 <b>내 부동산</b>에 더해져요."],
-      ["🆘", "몰래 내놓기", "여러 곳에 맡길 땐 <b>가격을 하나로</b>. 다른 가격이면 한 곳에만. 팔리면 [🏁 팔렸어요] 한 번이면 모두에게 알려요."],
-      ["🔔", "알림 허용", "\"알림을 허용할까요?\"가 뜨면 <b>[허용]</b>. 사장님 답장이 소리로 와요."],
-      ["♻", "다시 깔았다면", "[전에 들어왔어요]에 같은 전화번호 + 숫자 6자리면 예전 방 그대로예요."]
-    ];
+    var G = GUIDES[who] || GUIDES.agent, items = G.items.slice();
     if (!NATIVE) items = items.filter(function (x) { return x[1] !== "지웠다 다시 깔았다면" && x[1] !== "끄기"; });
     var pos = null; try { pos = JSON.parse(ls("bp_tips_pos") || "null"); } catch (er) {}
     var small = innerWidth < 640, mini = ls("bp_tips_min") === "1";
@@ -213,7 +236,7 @@
       : small ? "left:8px;right:8px;bottom:calc(10px + env(safe-area-inset-bottom,0px));" : "right:18px;bottom:18px;width:380px;";
     d.style.cssText = base + place;
     d.innerHTML = '<div id="bpTipsH" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:move;touch-action:none;background:#FFF7ED;border-radius:16px 16px 0 0;user-select:none">' +
-      '<span style="font-size:13px;color:#C2410C">⠿</span><b style="flex:1;font-size:15.5px">💡 발품 쓰기 전에 꼭 보세요</b>' +
+      '<span style="font-size:13px;color:#C2410C">⠿</span><b style="flex:1;font-size:15.5px">' + G.title + '</b>' +
       '<button type="button" id="bpTipsM" aria-label="접기 펴기" style="border:0;background:#fff;border-radius:8px;padding:4px 9px;font-weight:800;cursor:pointer">' + (mini ? "▴ 펴기" : "▾ 접기") + '</button>' +
       '<button type="button" id="bpTipsC" aria-label="닫기" style="border:0;background:#fff;border-radius:8px;padding:4px 9px;font-weight:800;cursor:pointer">✕</button></div>' +
       '<div id="bpTipsB" style="padding:4px 14px 12px;max-height:min(60vh,460px);overflow:auto;' + (mini ? "display:none" : "") + '">' +
@@ -224,7 +247,7 @@
     document.body.appendChild(d);
     var close = function () { d.remove(); try { sessionStorage.setItem(key, "1"); } catch (er) {} };
     $("bpTipsX").onclick = close; $("bpTipsC").onclick = close;
-    $("bpTipsW").onclick = function () { ls(key, String(Date.now() + 7 * 864e5)); close(); say("일주일 동안 안 보여요 · 다시 보려면 [💡 안내 다시 보기]"); };
+    $("bpTipsW").onclick = function () { ls(key, String(Date.now() + 7 * 864e5)); close(); say("일주일 동안 안 보여요 · 다시 보려면 [💡 " + (G.again || "안내 다시 보기") + "]"); };
     $("bpTipsM").onclick = function () { var b = $("bpTipsB"), m = b.style.display !== "none"; b.style.display = m ? "none" : ""; this.textContent = m ? "▴ 펴기" : "▾ 접기"; ls("bp_tips_min", m ? "1" : null); };
     // 끌어서 옮기기
     var H = $("bpTipsH"), drag = null;
@@ -384,11 +407,84 @@
     try { sessionStorage.setItem("bp_splash", "1"); } catch (er) {}
   }
 
+  /* =================================================================
+     11. 🧭 답사 길안내 — [🏠 한 집씩] · [🧭 전체 동선] (v1.8.2)
+         네이버지도: 출발지 → 들르는 곳 5곳 → 도착 · 카카오맵: 들르는 곳 2곳 → 도착 · 더 많으면 묶음으로
+     ================================================================= */
+  function rmode(v) { if (v === undefined) return ls("bp_route_mode") || "one"; ls("bp_route_mode", v); }
+  var RTN = { naver: 5, kakao: 2 };
+  window.bpRouteModeBar = function () {
+    var m = rmode(), app = ls("mm_route_app") || "kakao";
+    return '<div class="rmbar"><div class="rmb2"><button type="button" data-rmode="one" class="' + (m === "one" ? "on" : "") + '">🏠 한 집씩</button><button type="button" data-rmode="all" class="' + (m === "all" ? "on" : "") + '">🧭 전체 동선</button></div>' +
+      (m === "all" ? '<div class="rmh">' + (app === "naver" ? "네이버지도 앱은 들르는 곳 <b>5곳까지</b> 한 번에 안내돼요" : app === "kakao" ? "카카오맵은 들르는 곳 <b>2곳까지</b> 한 번에 · 많으면 묶음으로 (네이버지도는 5곳)" : "웹 지도는 한 집씩만 돼요 — 길안내 앱을 네이버지도 · 카카오맵으로 바꿔 주세요") + '</div>' +
+        '<button type="button" class="btn" data-routeall="1" style="margin:6px 0 0">🧭 전체 동선 길안내 (남은 집 순서대로)</button><div id="rmGo"></div>' : '') +
+      '<button type="button" class="rmq" data-tourguide="1">💡 길안내 안내 다시 보기</button></div>';
+  };
+  css("rmCss", '.rmbar{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:8px;margin:0 0 10px}.rmb2{display:grid;grid-template-columns:1fr 1fr;gap:6px}' +
+    '.rmb2 button{border:2px solid #CBD5E1;background:#fff;border-radius:12px;padding:11px 6px;font:800 15px "Noto Sans KR",sans-serif;cursor:pointer;color:#334155}.rmb2 button.on{border-color:#1E2A78;background:#1E2A78;color:#fff}' +
+    '.rmh{font-size:12.5px;color:#475569;margin:6px 2px 0;line-height:1.5}.rmq{border:0;background:none;color:#1E2A78;text-decoration:underline;font-size:12.5px;margin-top:6px;cursor:pointer;padding:0}' +
+    '.rmgo a{display:block;text-align:center;text-decoration:none;margin-top:6px}');
+  function rerouteUI() { if (window.CUR && CUR.view === "tour" && typeof showTour === "function") { var y = window.scrollY; showTour(true); window.scrollTo(0, y); } }
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest && ev.target.closest("[data-rmode]");
+    if (b) { rmode(b.getAttribute("data-rmode")); if (b.getAttribute("data-rmode") === "all") say("🧭 전체 동선으로 바꿨어요"); else say("🏠 한 집씩으로 바꿨어요"); rerouteUI(); each(".rmbar", function (x) { x.outerHTML = window.bpRouteModeBar(); }); return; }
+    if (ev.target.closest && ev.target.closest("[data-tourguide]")) { window.bpGuideAgain("tour"); return; }
+    var g = ev.target.closest && ev.target.closest("[data-routeall]");
+    if (g) routeAll(g);
+  });
+  function routeUrl(app, sp, pts) {      // pts: [{lat,lng,name}] 마지막 = 도착
+    var dst = pts[pts.length - 1], via = pts.slice(0, -1), and = /Android/i.test(navigator.userAgent || "");
+    var nm = function (x) { return encodeURIComponent(String(x.name || "답사").replace(/[,#;&]/g, " ").trim()); };
+    if (app === "naver") {
+      var q = "route/car?" + (sp ? "slat=" + sp.lat + "&slng=" + sp.lng + "&sname=" + encodeURIComponent(sp.label || "출발") + "&" : "") +
+        via.map(function (v, i) { return "v" + (i + 1) + "lat=" + v.lat + "&v" + (i + 1) + "lng=" + v.lng + "&v" + (i + 1) + "name=" + nm(v); }).join("&") + (via.length ? "&" : "") +
+        "dlat=" + dst.lat + "&dlng=" + dst.lng + "&dname=" + nm(dst) + "&appname=maemul.app";
+      return and ? "intent://" + q + "#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end" : "nmap://" + q;
+    }
+    var k = "route?" + (sp ? "sp=" + sp.lat + "," + sp.lng + "&" : "") + via.map(function (v, i) { return (i ? "vp" + (i + 1) : "vp") + "=" + v.lat + "," + v.lng; }).join("&") + (via.length ? "&" : "") + "ep=" + dst.lat + "," + dst.lng + "&by=CAR";
+    return and ? "intent://" + k + "#Intent;scheme=kakaomap;package=net.daum.android.map;end" : "kakaomap://" + k;
+  }
+  function routeAll(btn) {
+    var app = ls("mm_route_app") || "kakao";
+    if (app === "web") { say("웹 지도는 한 집씩만 돼요. [🧭 길안내 앱 바꾸기]로 네이버지도 · 카카오맵을 골라 주세요"); return; }
+    if (typeof TOUR === "undefined" || !TOUR || !TOUR.stops || !TOUR.stops.length) { say("답사할 집이 없어요"); return; }
+    var n = TOUR.stops.length, order = [];
+    for (var k = 0; k < n; k++) { var i = (TOUR.cur + k) % n; if (!TOUR.stops[i].seen || i === TOUR.cur) order.push(i); }
+    if (!order.length) { say("남은 집이 없어요 (모두 ✔ 봤어요)"); return; }
+    btn.disabled = true; btn.textContent = "집 위치 찾는 중…";
+    kakaoLoad().then(function () {
+      return order.reduce(function (p, i) { return p.then(function (acc) { return geocode(stopAddr(TOUR.stops[i])).then(function (g) { if (g) acc.push({ lat: g.lat, lng: g.lng, name: stopInfo(TOUR.stops[i]).name, no: i + 1 }); else acc.miss.push(i + 1); return acc; }); }); }, Promise.resolve(Object.assign([], { miss: [] })));
+    }).then(function (pts) {
+      return startPoint().then(function (sp) { return { pts: pts, sp: sp }; });
+    }).then(function (r) {
+      btn.disabled = false; btn.textContent = "🧭 전체 동선 길안내 (남은 집 순서대로)";
+      var per = RTN[app] + 1, pts = r.pts, out = $("rmGo"); if (!out) return;
+      if (!pts.length) { out.innerHTML = '<div class="hint">집 위치를 못 찾았어요. 주소를 번지까지 적어 주세요.</div>'; return; }
+      var html = '', sp = r.sp ? { lat: r.sp.p.lat, lng: r.sp.p.lng, label: r.sp.label } : null;
+      for (var a = 0, g = 1; a < pts.length; a += per, g++) {
+        var part = pts.slice(a, a + per), from = a ? { lat: pts[a - 1].lat, lng: pts[a - 1].lng, label: pts[a - 1].name } : sp;
+        html += '<div class="rmgo"><a class="btn' + (g > 1 ? " ghost" : "") + '" href="' + e(routeUrl(app, from, part)) + '" target="_top">▶ ' + (pts.length > per ? g + "묶음: " : "") + part.map(function (x) { return x.no + "번"; }).join(" → ") + ' ' + (app === "naver" ? "네이버지도" : "카카오맵") + '로 출발</a></div>';
+      }
+      out.innerHTML = html + (pts.miss && pts.miss.length ? '<div class="hint">' + pts.miss.join(", ") + '번 집은 위치를 못 찾아 빠졌어요 (주소를 번지까지).</div>' : '') +
+        '<div class="hint">출발: ' + e(r.sp ? r.sp.label : "지금 위치") + ' · 길안내가 끝나면 핸드폰 [뒤로]로 돌아와요.' + (pts.length > per ? ' 한 묶음이 끝나면 다음 묶음을 누르세요.' : '') + '</div>';
+    }).catch(function () { btn.disabled = false; btn.textContent = "🧭 전체 동선 길안내 (남은 집 순서대로)"; say("지도를 불러오지 못했어요. 인터넷 · 카카오 지도 설정을 확인해 주세요"); });
+  }
+  // 답사 화면을 처음 열면 길안내 안내
+  (function hookTour() {
+    var t = setInterval(function () {
+      if (typeof window.showTour !== "function") return; clearInterval(t);
+      var o = window.showTour; window.showTour = function () { var r = o.apply(this, arguments); setTimeout(function () { window.bpGuide("tour"); }, 600); return r; };
+    }, 300);
+  })();
+
   /* ---------- 로그인 뒤 한 번 ---------- */
   var started = false;
   function afterStart() {
     if (started || !window.BALPUM || !BALPUM.Auth.user()) return; started = true;
-    setTimeout(function () { pcStart(); expirySync(); }, 2500);
+    setTimeout(function () { pcStart(); expirySync();
+      // ⏰ 알람 시계: 앞으로 14일치를 다시 채움 (앱을 열 때마다)
+      if (NATIVE && window.BP_NOTI && BP_NOTI.clockSync && BP_NOTI.can && BP_NOTI.can()) BALPUM.DB.setting("cal", {}).then(function (c) { if (c && c.clock && c.clock.length) BP_NOTI.clockSync(c.clock); }).catch(function () {});
+    }, 2500);
   }
   setInterval(afterStart, 3000);
 })();

@@ -19,7 +19,7 @@
 
   /* ---------- 꾸밈 표시 → HTML ---------- */
   var TOKENS = [
-    ["{빨강}", "{/빨강}", '<span style="color:#dc2626">', "</span>"],
+    ["{빨강}", "{/빨강}", '<span class="hl-red" style="color:#dc2626">', "</span>"],
     ["{박스}", "{/박스}", '<span class="hl-box">', "</span>"],
     ["{파란박스}", "{/파란박스}", '<span class="hl-box hl-blue">', "</span>"],
     ["{형광}", "{/형광}", '<span class="hl-mark">', "</span>"],
@@ -32,6 +32,26 @@
     TOKENS.forEach(function (t) { s = s.split(h(t[0])).join(t[2]).split(h(t[1])).join(t[3]); });
     return s.replace(/\r?\n/g, "<br>");
   }
+  // v1.8.2 '보이는 대로 쓰는 칸': 꾸민 모양 그대로 보여 주고, 저장할 때는 기호로 바꿈
+  var CLS2TOK = { "hl-red": "빨강", "hl-blue": "파란박스", "hl-box": "박스", "hl-mark": "형광", "hl-strike": "줄", "hl-x": "엑스" };
+  function tokOf(el) { var c = (el.className || "") + ""; if (/hl-blue/.test(c)) return "파란박스"; for (var k in CLS2TOK) if (c.split(/\s+/).indexOf(k) >= 0) return CLS2TOK[k]; if (/#dc2626|rgb\(220, 38, 38\)/i.test(el.getAttribute && el.getAttribute("style") || "")) return "빨강"; return ""; }
+  function fromEd(el) {
+    var out = "";
+    (function walk(n, top) {
+      Array.prototype.forEach.call(n.childNodes, function (c, i) {
+        if (c.nodeType === 3) { out += c.nodeValue.replace(/\u00a0/g, " "); return; }
+        if (c.nodeType !== 1) return;
+        var tag = c.tagName;
+        if (tag === "BR") { out += "\n"; return; }
+        var blk = tag === "DIV" || tag === "P";
+        if (blk && out && !/\n$/.test(out)) out += "\n";
+        var t = tokOf(c);
+        if (t) out += "{" + t + "}"; walk(c); if (t) out += "{/" + t + "}";
+      });
+    })(el);
+    return out.replace(/\n+$/, "");
+  }
+  window.bpFlyerFromEd = fromEd;
   function plain(raw) { var s = String(raw || ""); TOKENS.forEach(function (t) { s = s.split(t[0]).join("").split(t[1]).join(""); }); return s; }
 
   /* ---------- 사진 줄이기 (인쇄용: 긴 변 1600px) ---------- */
@@ -216,9 +236,9 @@
     return {
       title: it ? dealTitle(it) : S.title,
       price: it ? (window.L17 ? L17.priceLine(it) : [it.deal_type, it.price].filter(Boolean).join(" ")) : S.price,
-      t1: it ? bodyOf(it.room_structure || "", [it.direction ? it.direction + "향" : "", mg ? "관리비 " + mg : ""]) : bodyOf(S.room, S.lines),
-      t2: "", boxText: "", boxBlue: false, boxAt: "middle",
-      count: 0, photos: [], on: { title: true, photo: false, box: false, body: true, price: true },
+      t1: it ? bodyOf("", [it.direction ? it.direction + "향" : "", mg ? "관리비 " + mg : ""]) : bodyOf(S.room, S.lines),
+      t2: "", boxText: it && it.room_structure ? it.room_structure : "", boxBlue: false, boxAt: "top",
+      count: 0, photos: [], on: { title: true, photo: false, box: !!(it && it.room_structure), body: true, price: true },
       theme: "red_blue", border: "테마색", borderW: "보통", headSize: 66, bodySize: 60, footSize: 80, photoH: 100, fit: "cover", footColor: "navy",
       mark: it ? String(it.id) : "", sample: it ? "" : S.name,
       oldPrice: it && it.price_old ? it.price_old : "", dropOn: !!(it && it.price_old)
@@ -274,9 +294,9 @@
           (srcPhotos.length ? '<div class="hint">매물 사진 (작게 저장된 것 · 누르면 추가)</div><div class="gal" id="fySrc">' + srcPhotos.map(function (s, i) { return '<img src="' + h(s) + '" data-a="' + i + '" alt="매물 사진">'; }).join("") + '</div>' : '') : '') +
         '<label for="fyB">박스 글 <span class="hint">(통째로 박스 안에)</span></label><input id="fyB" value="' + h(F.boxText) + '">' +
         '<div class="two">' + sel("fyBA", F.boxAt, [["top", "박스: 맨 위"], ["middle", "박스: 가운데"], ["bottom", "박스: 맨 아래"]]) + sel("fyBC", F.boxBlue ? "1" : "", [["", "빨간 박스"], ["1", "파란 박스"]]) + '</div>' +
-        '<label for="fy1">' + (n === 4 ? '본문 (위 사진 아래)' : n === 2 ? '본문 (첫 사진 아래)' : '본문') + '</label><textarea id="fy1" rows="4">' + h(F.t1) + '</textarea>' +
+        '<label for="fy1">' + (n === 4 ? '본문 (위 사진 아래)' : n === 2 ? '본문 (첫 사진 아래)' : '본문') + ' <span class="hint">(꾸민 모양 그대로 보여요)</span></label><div id="fy1" class="fy-ed" contenteditable="true" role="textbox" aria-multiline="true">' + markup(F.t1) + '</div>' +
         '<div class="hint">자주 쓰는 말 (누르면 본문에 한 줄 더해져요)</div><div class="stat">' + PHRASES.map(function (p) { return '<button class="chip" data-ph="' + h(p) + '" type="button">+ ' + h(p) + '</button>'; }).join("") + '</div>' +
-        (n === 2 || n === 4 ? '<label for="fy2">본문 (' + (n === 4 ? '아래 사진 아래' : '둘째 사진 아래') + ')</label><textarea id="fy2" rows="3">' + h(F.t2) + '</textarea>' : '') +
+        (n === 2 || n === 4 ? '<label for="fy2">본문 (' + (n === 4 ? '아래 사진 아래' : '둘째 사진 아래') + ')</label><div id="fy2" class="fy-ed" contenteditable="true" role="textbox" aria-multiline="true">' + markup(F.t2) + '</div>' : '') +
         '<div class="hint">글자를 길게 눌러 고른 뒤 꾸미기: </div><div class="stat"><button class="chip" data-w="빨강">빨간 글씨</button><button class="chip" data-w="박스">빨간 박스</button><button class="chip" data-w="파란박스">파란 박스</button><button class="chip" data-w="형광">형광펜</button><button class="chip" data-w="줄" style="text-decoration:line-through;text-decoration-color:#dc2626">줄 긋기</button><button class="chip" data-w="엑스">✕ 엑스</button><button class="chip" data-w="">꾸밈 지우기</button></div>' +
         '<div class="hint">제목 · 박스 글 · 본문 · 가격 어디서든 글자를 끌어서(길게 눌러) 고르면 아래에 꾸미기 줄이 떠요.</div>' +
         '<label for="fyP">하단 가격</label><input id="fyP" value="' + h(F.price) + '">' +
@@ -296,15 +316,30 @@
     }
     function read() {
       var v = function (id) { var e = $(id); return e ? e.value : undefined; };
-      F.title = v("fyT"); F.boxText = v("fyB"); F.boxAt = v("fyBA"); F.boxBlue = v("fyBC") === "1"; F.t1 = v("fy1");
-      if ($("fy2")) F.t2 = v("fy2");
+      F.title = v("fyT"); F.boxText = v("fyB"); F.boxAt = v("fyBA"); F.boxBlue = v("fyBC") === "1"; F.t1 = $("fy1") ? fromEd($("fy1")) : F.t1;
+      if ($("fy2")) F.t2 = fromEd($("fy2"));
       F.price = v("fyP"); F.oldPrice = v("fyOP") || ""; F.dropOn = $("fyDrop") ? $("fyDrop").checked : !!F.dropOn; F.theme = v("fyTh"); F.footColor = v("fyFC"); F.border = v("fyBo"); F.borderW = v("fyBW"); F.fit = v("fyFit");
       F.photoH = Number(v("fyPH")) || 100; F.headSize = Number(v("fyHS")) || 66; F.bodySize = Number(v("fyBS")) || 60; F.footSize = Number(v("fyFS")) || 80;
       if (!$("fyMk").checked) F.mark = ""; else if (!F.mark) F.mark = it ? String(it.id) : "";
     }
     var lastTa = null;
     // v1.8 꾸미기: 고른 글자를 {줄}…{/줄} 처럼 감싸기 · w 가 "" 이면 고른 곳의 꾸밈 표시 지우기
+    var TOK2CLS = { "빨강": "hl-red", "박스": "hl-box", "파란박스": "hl-box hl-blue", "형광": "hl-mark", "줄": "hl-strike", "엑스": "hl-x" };
     function deco(ta, w) {
+      if (ta.isContentEditable) {
+        var sel = window.getSelection(); if (!sel.rangeCount || sel.isCollapsed || !ta.contains(sel.anchorNode)) { toast("꾸밀 글자를 먼저 골라(길게 눌러) 주세요."); return; }
+        var rg = sel.getRangeAt(0);
+        if (!w) {     // 꾸밈 지우기: 고른 곳을 감싼 꾸밈을 벗김
+          var txt = rg.toString(), node = rg.commonAncestorContainer; node = node.nodeType === 3 ? node.parentNode : node;
+          var hit = node.closest && node.closest(".hl-red,.hl-box,.hl-mark,.hl-strike,.hl-x,[style*='dc2626']");
+          if (hit && ta.contains(hit)) { var par = hit.parentNode; while (hit.firstChild) par.insertBefore(hit.firstChild, hit); par.removeChild(hit); }
+          else { rg.deleteContents(); rg.insertNode(document.createTextNode(txt)); }
+          ta.normalize(); toast("꾸밈을 지웠어요."); hideBar(); return;
+        }
+        var sp = document.createElement("span"); sp.className = TOK2CLS[w] || ""; if (w === "빨강") sp.style.color = "#dc2626";
+        try { sp.appendChild(rg.extractContents()); rg.insertNode(sp); sel.removeAllRanges(); } catch (er) { toast("한 줄 안에서 골라 주세요."); return; }
+        toast(w === "줄" ? "줄을 그었어요." : w === "엑스" ? "✕ 엑스를 쳤어요." : "꾸몄어요."); hideBar(); return;
+      }
       var s = ta.selectionStart, e = ta.selectionEnd;
       if (s === e) { toast("꾸밀 글자를 먼저 골라(길게 눌러) 주세요."); return; }
       var mid = ta.value.slice(s, e);
@@ -314,7 +349,8 @@
     }
     function hideBar() { var b = $("fyDeco"); if (b) b.remove(); }
     function decoBar(ta) {
-      if (!ta || ta.selectionStart === ta.selectionEnd || document.activeElement !== ta) { hideBar(); return; }
+      if (ta && ta.isContentEditable) { var sl = window.getSelection(); if (!sl.rangeCount || sl.isCollapsed || !ta.contains(sl.anchorNode)) { hideBar(); return; } }
+      else if (!ta || ta.selectionStart === ta.selectionEnd || document.activeElement !== ta) { hideBar(); return; }
       var b = $("fyDeco");
       if (!b) { b = document.createElement("div"); b.id = "fyDeco";
         b.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9990;background:#0F172A;color:#fff;border-radius:999px;padding:6px 8px;display:flex;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.3);font:700 13px 'Noto Sans KR',sans-serif;max-width:calc(100vw - 16px);overflow-x:auto";
@@ -329,6 +365,15 @@
     }
     function bind() {
       $("bk").onclick = function () { history.back(); };
+      if (!$("fyEdCss")) { var st = document.createElement("style"); st.id = "fyEdCss"; st.textContent = '.fy-ed{min-height:96px;border:1px solid #CBD5E1;border-radius:12px;padding:10px 12px;background:#fff;font:700 17px/1.5 "Noto Sans KR",sans-serif;text-align:center;outline:none;white-space:pre-wrap;word-break:keep-all}.fy-ed:focus{border-color:#1E2A78;box-shadow:0 0 0 3px rgba(30,42,120,.12)}' +
+        '.fy-ed .hl-box{display:inline-block;border:2px solid #dc2626;background:#fff1f2;color:#b91c1c;border-radius:6px;padding:0 6px}.fy-ed .hl-blue{border-color:#2563eb;background:#eff6ff;color:#1d4ed8}.fy-ed .hl-mark{background:linear-gradient(transparent 55%,#fde047 55%)}.fy-ed .hl-red{color:#dc2626}' +
+        '.fy-ed .hl-strike{text-decoration:line-through;text-decoration-color:#dc2626;text-decoration-thickness:2px}.fy-ed .hl-x{background:linear-gradient(to top right,transparent calc(50% - 1.5px),#dc2626 calc(50% - 1px),#dc2626 calc(50% + 1px),transparent calc(50% + 1.5px)),linear-gradient(to top left,transparent calc(50% - 1.5px),#dc2626 calc(50% - 1px),#dc2626 calc(50% + 1px),transparent calc(50% + 1.5px))}'; document.head.appendChild(st); }
+      ["fy1", "fy2"].forEach(function (id) { var el = $(id); if (!el) return; el.addEventListener("paste", function (ev) { ev.preventDefault(); var t = (ev.clipboardData || window.clipboardData).getData("text"); document.execCommand("insertText", false, t); }); });
+      document.onselectionchange = function () { var a = document.activeElement; if (a && a.isContentEditable && (a.id === "fy1" || a.id === "fy2")) { lastTa = a; decoBar(a); } };
+      if ($("fyB")) $("fyB").addEventListener("input", function () {     // 박스 글을 쓰면 [박스] 칩이 저절로 켜짐 · 지우면 꺼짐
+        var on = !!this.value.trim(); if (on === !!F.on.box) return; F.on.box = on;
+        var ch = document.querySelector('[data-on="box"]'); if (ch) { ch.classList.toggle("on", on); ch.textContent = (on ? "✔ " : "") + ch.textContent.replace(/^✔ /, ""); }
+        toast(on ? "✔ [박스]를 켰어요 — 박스 글이 홍보장에 나와요" : "박스 글이 비어서 [박스]를 껐어요"); });
       ["fy1", "fy2", "fyT", "fyB", "fyP", "fyOP"].forEach(function (id) { if ($(id)) { $(id).onfocus = function () { lastTa = this; }; ["select", "mouseup", "keyup", "touchend"].forEach(function (k) { $(id).addEventListener(k, function () { setTimeout(function () { decoBar($(id)); }, 30); }); }); $(id).addEventListener("blur", function () { setTimeout(function () { if (!document.activeElement || ["fy1", "fy2", "fyT", "fyB", "fyP", "fyOP"].indexOf(document.activeElement.id) < 0) hideBar(); }, 200); }); } });
       if ($("fyDrop")) $("fyDrop").onchange = function () { $("fyOP").style.display = this.checked ? "" : "none"; if (this.checked && !$("fyOP").value) { $("fyOP").value = $("fyP").value; $("fyOP").focus(); toast("내리기 전 가격을 적고, 하단 가격에는 새 가격을 적어 주세요."); } };
       Array.prototype.forEach.call(document.querySelectorAll("[data-on]"), function (b) { b.onclick = function () { read(); var k = b.getAttribute("data-on"); F.on[k] = !F.on[k]; if (k === "box" && F.on.box && !F.boxText) toast("박스 글 칸에 글을 써 주세요."); draw(); }; });
@@ -339,7 +384,7 @@
       Array.prototype.forEach.call(document.querySelectorAll("#fySrc img"), function (im) { im.onclick = function () {
         read(); if (F.photos.length >= Number(F.count)) { toast("사진 " + F.count + "장을 다 골랐어요. 고른 사진을 눌러 빼고 넣으세요."); return; }
         F.photos.push(srcPhotos[Number(im.getAttribute("data-a"))]); draw(); }; });
-      Array.prototype.forEach.call(document.querySelectorAll("[data-w]"), function (b) { b.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll("[data-w]"), function (b) { b.onmousedown = function (ev) { ev.preventDefault(); }; b.onpointerdown = function (ev) { ev.preventDefault(); }; b.onclick = function () {
         var ta = lastTa || $("fy1"); if (!ta) return;
         deco(ta, b.getAttribute("data-w")); }; });
       Array.prototype.forEach.call(document.querySelectorAll("[data-s]"), function (b) { b.onclick = function () {
@@ -347,7 +392,9 @@
         applySample(F, S, it); draw(); toast("‘" + S.name + "’ 샘플을 넣었어요. 글을 고치고 미리보기를 눌러 보세요."); }; });
       Array.prototype.forEach.call(document.querySelectorAll("[data-ph]"), function (b) { b.onclick = function () {
         var ta = lastTa || $("fy1"); if (!ta) return; var p = b.getAttribute("data-ph");
-        ta.value = ta.value.replace(/\s+$/, "") + (ta.value.trim() ? "\n" : "") + p; read(); toast("‘" + p + "’ 넣었어요."); }; });
+        if (ta.isContentEditable) { var dv = document.createElement("div"); dv.textContent = p; if (ta.textContent.trim()) ta.appendChild(dv); else ta.textContent = p; }
+        else ta.value = ta.value.replace(/\s+$/, "") + (ta.value.trim() ? "\n" : "") + p;
+        read(); toast("‘" + p + "’ 넣었어요."); }; });
       if ($("fyFile")) $("fyFile").onclick = function () { $("fyIn").click(); };
       $("fyIn").onchange = function () {
         read(); var files = Array.prototype.slice.call(this.files || []); var room = Number(F.count) - F.photos.length;
@@ -369,6 +416,7 @@
     }
     nav("flyerEdit");
     draw();
+    if (window.bpGuide) setTimeout(function () { bpGuide("flyer"); }, 600);
     if (it) listingPhotos(it).then(function (ph) {
       srcPhotos = ph;
       if (!F.photos.length && ph.length && Number(F.count)) F.photos = ph.slice(0, Number(F.count));

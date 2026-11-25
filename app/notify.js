@@ -111,6 +111,7 @@
     return { id: id, title: title, body: body, channelId: AL_CH, actionTypeId: "BP_ALARM", ongoing: false, autoCancel: true,
              schedule: { at: new Date(at), allowWhileIdle: true }, extra: { go: "cal", al: key } };
   }
+  function atOf(k, t) { var p = k.split("-"), hm = /^(\d{1,2}):(\d{2})/.exec(t || "") || [0, 9, 0]; return new Date(+p[0], +p[1] - 1, +p[2], +hm[1], +hm[2]).getTime(); }
   function alarmSync(days, allOff) {
     var L = LN(); if (!L) return Promise.resolve(0);
     var old = getJ(AL_IDS, []);
@@ -120,6 +121,11 @@
       if (allOff) return 0;
       var now = Date.now(), until = now + 60 * 864e5, list = [];
       Object.keys(days || {}).forEach(function (k) {
+        var dk = days[k] || {};
+        // v1.8.2 메모 · 포스트잇 알람도 같이 (그 시각에 · 몇 분 전 없음)
+        if (dk.memo && dk.memoAl && dk.memoAl.on) list.push({ at: atOf(k, dk.memoAl.t), k: k, x: { id: "memo_" + k, t: dk.memoAl.t, x: "📝 메모 · " + dk.memo, al: { lead: 0 } } });
+        if ((dk.posts || []).length && dk.postAl && dk.postAl.on) list.push({ at: atOf(k, dk.postAl.t), k: k, x: { id: "post_" + k, t: dk.postAl.t, x: "🟨 포스트잇 · " + String(dk.posts[dk.posts.length - 1] || "").slice(0, 40), al: { lead: 0 } } });
+        list = list.filter(function (o) { return o.at > now + 3e4 && o.at < until; });
         (days[k].ev || []).forEach(function (x) {
           if (x.d || !x.al || !x.al.on) return;
           var p = k.split("-"), hm = /^(\d{1,2}):(\d{2})/.exec(x.t || "");
@@ -135,7 +141,7 @@
           var ns = [], map = {};
           list.forEach(function (o, i) {
             var key = o.x.id || (o.k + "_" + i), lead = +o.x.al.lead || 0;
-            var title = "⏰ " + (lead ? (lead >= 60 ? lead / 60 + "시간" : lead + "분") + " 뒤 약속" : "지금 약속") + (o.x.t ? " · " + o.x.t : "");
+            var title = /^(memo|post)_/.test(String(o.x.id)) ? "⏰ 알람" + (o.x.t ? " · " + o.x.t : "") : "⏰ " + (lead ? (lead >= 60 ? lead / 60 + "시간" : lead + "분") + " 뒤 약속" : "지금 약속") + (o.x.t ? " · " + o.x.t : "");
             var body = (o.x.x || "약속") + (o.x.p ? " · " + o.x.p : "") + "  [끄기] [5분 뒤 다시]";
             map[key] = [];
             for (var r = 0; r < 3; r++) { var id = 200000 + i * 3 + r; ns.push(alarmOne(id, o.at + r * 6e4, title, body, key)); map[key].push(id); }
@@ -145,18 +151,56 @@
       });
     }).catch(function () { return 0; });
   }
+  /* ---------- ⏰ 알람 시계 (v1.8.2): 앞으로 14일치를 미리 걸어 둠 (앱을 열 때마다 다시 채움) ---------- */
+  var CK_IDS = "bp_clock_ids";
+  function clockSync(list) {
+    var L = LN(); if (!L) return Promise.resolve(0);
+    var old = getJ(CK_IDS, []);
+    var cancel = old.length ? L.cancel({ notifications: old.map(function (id) { return { id: id }; }) }).catch(function () {}) : Promise.resolve();
+    return cancel.then(function () {
+      setJ(CK_IDS, []); setJ("bp_clock_map", {});
+      var on = (list || []).filter(function (a) { return a && a.on && /^\d{1,2}:\d{2}$/.test(a.t || ""); });
+      if (!on.length) return 0;
+      var now = Date.now(), items = [];
+      on.forEach(function (a) {
+        var hm = a.t.split(":"), days = a.days || [];
+        for (var d = 0; d < 15; d++) {
+          var at = new Date(); at.setDate(at.getDate() + d); at.setHours(+hm[0], +hm[1], 0, 0);
+          if (at.getTime() <= now + 3e4) continue;
+          if (days.length && days.indexOf(at.getDay()) < 0) continue;
+          items.push({ a: a, at: at.getTime() });
+          if (!days.length) break;                 // 한 번만
+        }
+      });
+      items.sort(function (x, y) { return x.at - y.at; }); items = items.slice(0, 50);
+      if (!items.length) return 0;
+      return perm().then(function (ok) {
+        if (!ok) return 0;
+        return alarmPrep().then(function () {
+          var ns = [], map = {};
+          items.forEach(function (o, i) {
+            var key = "ck:" + o.a.id + ":" + o.at, title = "⏰ " + o.a.t + " " + (o.a.label || "알람");
+            map[key] = [];
+            for (var r = 0; r < 3; r++) { var id = 330000 + i * 3 + r; ns.push(alarmOne(id, o.at + r * 6e4, title, "알람 시계 · [끄기] [5분 뒤 다시]", key)); map[key].push(id); }
+          });
+          return L.schedule({ notifications: ns }).then(function () { setJ(CK_IDS, ns.map(function (n) { return n.id; })); setJ("bp_clock_map", map); return items.length; });
+        });
+      });
+    }).catch(function () { return 0; });
+  }
   function alarmAction(a) {
     var L = LN(), n = (a && a.notification) || {}, x = n.extra || {}, key = x.al;
-    var map = getJ("bp_alarm_map", {}), ids = (map[key] || []).concat(n.id ? [n.id] : []);
+    var MK = /^ck:/.test(String(key || "")) ? "bp_clock_map" : "bp_alarm_map";
+    var map = getJ(MK, {}), ids = (map[key] || []).concat(n.id ? [n.id] : []);
     var stop = ids.length ? L.cancel({ notifications: ids.map(function (id) { return { id: id }; }) }).catch(function () {}) : Promise.resolve();
     if (a.actionId === "snooze") {
       return stop.then(function () { return alarmPrep(); }).then(function () {
         var id = 290000 + Math.floor(Math.random() * 9000);
-        map[key] = [id]; setJ("bp_alarm_map", map);
+        map[key] = [id]; setJ(MK, map);
         return L.schedule({ notifications: [alarmOne(id, Date.now() + 5 * 6e4, (n.title || "⏰ 약속").replace(/^⏰ ?/, "⏰ (다시) "), n.body || "", key)] });
       }).catch(function () {});
     }
-    stop.then(function () { delete map[key]; setJ("bp_alarm_map", map); });
+    stop.then(function () { delete map[key]; setJ(MK, map); });
     if (a.actionId !== "off") openFrom(x);
   }
 
@@ -230,7 +274,7 @@
   window.BP_NOTI = {
     can: function () { return !!LN(); },
     push: function () { return !!(P("PushNotifications") && ((window.BALPUM && BALPUM.config) || {}).PUSH); },
-    calSync: calSync, alarmSync: alarmSync, ycDaily: ycDaily, drop: drop, ding: ding, open: openFrom,
+    calSync: calSync, alarmSync: alarmSync, clockSync: clockSync, ycDaily: ycDaily, drop: drop, ding: ding, open: openFrom,
     afterLogin: function () { bindLocal(); pushInit();
       var u = window.BALPUM && BALPUM.Auth && BALPUM.Auth.user();
       if (u && calUser !== u.id && LN()) { calUser = u.id; setTimeout(function () { if (window.calNotiSync) calNotiSync(); }, 2500); } }
